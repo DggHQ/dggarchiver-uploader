@@ -21,8 +21,8 @@ func (m *Monitor) Init() {
 	m.CurrentProgress = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: "dgghq",
-			Subsystem: "archiver_upload",
-			Name:      "upload_progress",
+			Subsystem: "archiver",
+			Name:      "upload_ratio",
 			Help:      "Current uploader progress value. Value ",
 		},
 		[]string{
