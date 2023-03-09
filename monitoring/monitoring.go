@@ -23,7 +23,7 @@ func (m *Monitor) Init() {
 			Namespace: "dgghq",
 			Subsystem: "archiver",
 			Name:      "upload_ratio",
-			Help:      "Current uploader progress value. Value ",
+			Help:      "Current uploader progress value. Value from 0-100",
 		},
 		[]string{
 			"id",
