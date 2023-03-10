@@ -11,8 +11,10 @@ import (
 	dggarchivermodel "github.com/DggHQ/dggarchiver-model"
 	"github.com/DggHQ/dggarchiver-uploader/config"
 	lbry "github.com/DggHQ/dggarchiver-uploader/lbry"
+	"github.com/DggHQ/dggarchiver-uploader/monitoring"
 	"github.com/DggHQ/dggarchiver-uploader/util"
 	"github.com/nats-io/nats.go"
+	"github.com/prometheus/client_golang/prometheus"
 	luaLibs "github.com/vadv/gopher-lua-libs"
 	lua "github.com/yuin/gopher-lua"
 )
@@ -32,6 +34,10 @@ func main() {
 	if cfg.Flags.Verbose {
 		log.SetLevel(log.DebugLevel)
 	}
+
+	monitor := monitoring.Monitor{}
+	monitor.Init()
+	go monitor.Run()
 
 	L := lua.NewState()
 	defer L.Close()
@@ -134,6 +140,12 @@ func main() {
 			}
 
 			uploadProgress = progressResult.Result.Items[0].ReflectorProgress
+			// 	Set Prometheus Gauge Value to the current upload progress value
+			monitor.ChangeCurrentProgress(float64(uploadProgress), prometheus.Labels{
+				"id":           vod.ID,
+				"channel_name": cfg.LBRYConfig.ChannelName,
+				"vod_title":    vod.Title,
+			})
 			uploadResult = progressResult.Result.Items[0].IsFullyReflected
 			if uploadResult {
 				break
