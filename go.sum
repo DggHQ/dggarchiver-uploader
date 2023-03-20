@@ -2,6 +2,8 @@ github.com/DggHQ/dggarchiver-logger v0.0.0-20230224190431-3025eee98c2d h1:5/enw2
 github.com/DggHQ/dggarchiver-logger v0.0.0-20230224190431-3025eee98c2d/go.mod h1:MaTChhaDRABk0Pnm5KC+VIsQKN783vhV4gWOyyZVp2I=
 github.com/DggHQ/dggarchiver-model v0.0.0-20230224184635-bcc8612f448f h1:mfH6APBsYxnJus77wh6XlPkb153AOKWe+Ypb1qNfcHw=
 github.com/DggHQ/dggarchiver-model v0.0.0-20230224184635-bcc8612f448f/go.mod h1:KPXeH8tl5G8xxCz2LdBq5dO1gfSrehCeDMtiCr8MFQg=
+github.com/DggHQ/dggarchiver-model v0.0.0-20230318230033-3a73d838394c h1:g0NcXASPoLR5+3NsnAGnWUYxtCfWPvr/3Fe3oRMTeTY=
+github.com/DggHQ/dggarchiver-model v0.0.0-20230318230033-3a73d838394c/go.mod h1:KPXeH8tl5G8xxCz2LdBq5dO1gfSrehCeDMtiCr8MFQg=
 github.com/VividCortex/ewma v1.1.1 h1:MnEK4VOv6n0RSY4vtRe3h11qjxL3+t0B8yOL8iMXdcM=
 github.com/VividCortex/ewma v1.1.1/go.mod h1:2Tkkvm3sRDVXaiyucHiACn4cqf7DpdyLvmxzcbUokwA=
 github.com/alecthomas/template v0.0.0-20160405071501-a0175ee3bccc/go.mod h1:LOuyumcjzFXgccqObfd/Ljyb9UuFJ6TxHnclSeseNhc=
