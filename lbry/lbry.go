@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/DggHQ/dggarchiver-uploader/config"
+	config "github.com/DggHQ/dggarchiver-config"
 )
 
 func UploadVideo(config config.Config, params LBRYVideoParams) LBRYVideoResponse {
@@ -18,7 +18,7 @@ func UploadVideo(config config.Config, params LBRYVideoParams) LBRYVideoResponse
 		panic(err)
 	}
 
-	resp, err := http.Post(config.LBRYConfig.URI, "application/json", bytes.NewBuffer(reqJson))
+	resp, err := http.Post(config.Uploader.LBRY.URI, "application/json", bytes.NewBuffer(reqJson))
 	if err != nil {
 		panic(err)
 	}
@@ -47,7 +47,7 @@ func CheckProgress(config config.Config, claim string) LBRYFileListResponse {
 		panic(err)
 	}
 
-	resp, err := http.Post(config.LBRYConfig.URI, "application/json", bytes.NewBuffer(reqJson))
+	resp, err := http.Post(config.Uploader.LBRY.URI, "application/json", bytes.NewBuffer(reqJson))
 	if err != nil {
 		panic(err)
 	}
@@ -76,7 +76,7 @@ func DeleteFile(config config.Config, claim string) LBRYFileDeleteResponse {
 		panic(err)
 	}
 
-	resp, err := http.Post(config.LBRYConfig.URI, "application/json", bytes.NewBuffer(reqJson))
+	resp, err := http.Post(config.Uploader.LBRY.URI, "application/json", bytes.NewBuffer(reqJson))
 	if err != nil {
 		panic(err)
 	}
@@ -102,7 +102,7 @@ func CleanBlobs(config config.Config) LBRYBlobCleanResponse {
 		panic(err)
 	}
 
-	resp, err := http.Post(config.LBRYConfig.URI, "application/json", bytes.NewBuffer(reqJson))
+	resp, err := http.Post(config.Uploader.LBRY.URI, "application/json", bytes.NewBuffer(reqJson))
 	if err != nil {
 		panic(err)
 	}

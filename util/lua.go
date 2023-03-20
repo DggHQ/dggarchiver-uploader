@@ -14,7 +14,7 @@ type LuaResponse struct {
 	Data    map[string]interface{}
 }
 
-func LuaCallReceiveFunction(L *lua.LState, vod *dggarchivermodel.YTVod) *LuaResponse {
+func LuaCallReceiveFunction(L *lua.LState, vod *dggarchivermodel.VOD) *LuaResponse {
 	luaVOD := luar.New(L, vod)
 
 	result := &LuaResponse{}
@@ -64,7 +64,7 @@ func LuaCallProgressFunction(L *lua.LState, progress int) *LuaResponse {
 	return result
 }
 
-func LuaCallFinishFunction(L *lua.LState, vod *dggarchivermodel.YTVod, success bool) *LuaResponse {
+func LuaCallFinishFunction(L *lua.LState, vod *dggarchivermodel.VOD, success bool) *LuaResponse {
 	luaVOD := luar.New(L, vod)
 	luaSuccess := luar.New(L, success)
 
@@ -90,7 +90,7 @@ func LuaCallFinishFunction(L *lua.LState, vod *dggarchivermodel.YTVod, success b
 	return result
 }
 
-func LuaCallInsertFunction(L *lua.LState, vod *dggarchivermodel.YTVod, success bool) *LuaResponse {
+func LuaCallInsertFunction(L *lua.LState, vod *dggarchivermodel.VOD, success bool) *LuaResponse {
 	luaVOD := luar.New(L, vod)
 	luaSuccess := luar.New(L, success)
 
