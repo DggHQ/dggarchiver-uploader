@@ -77,7 +77,7 @@ func main() {
 		params := lbry.LBRYVideoParams{
 			Name:         fmt.Sprintf("%s-r-%s%d", vod.ID, vod.Platform, rand.Intn(1000)),
 			Title:        fmt.Sprintf("[%s:%s] %s", vod.Platform, vod.ID, vod.Title),
-			BID:          "0.00001",
+			BID:          "0.0001",
 			FilePath:     vod.Path,
 			ValidateFile: false,
 			OptimizeFile: false,
@@ -177,7 +177,14 @@ func main() {
 				log.Infof("File %s deleted successfully.", vod.ID)
 			}
 
-			_, err = cfg.Uploader.SQLite.InsertStatement.Exec(vod.ID, vod.PubTime, vod.Title, vod.StartTime, vod.EndTime, vod.Thumbnail, thumbnail, vod.ThumbnailPath, vod.Path, vod.Duration, result.Result.Outputs[0].ClaimID, result.Result.Outputs[0].Name, result.Result.Outputs[0].NormalizedName, result.Result.Outputs[0].PermanentURL)
+			err := cfg.Uploader.SQLite.DB.Create(&dggarchivermodel.UploadedVOD{
+				VOD:                *vod,
+				Claim:              result.Result.Outputs[0].ClaimID,
+				LBRYChannel:        cfg.Uploader.LBRY.ChannelName,
+				LBRYName:           result.Result.Outputs[0].Name,
+				LBRYNormalizedName: result.Result.Outputs[0].NormalizedName,
+				LBRYPermanentURL:   result.Result.Outputs[0].PermanentURL,
+			}).Error
 			if err != nil {
 				log.Errorf("Wasn't able to insert VOD into SQLite DB: %s", err)
 				return
