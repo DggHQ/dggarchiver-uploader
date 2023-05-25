@@ -77,7 +77,7 @@ func main() {
 		params := lbry.LBRYVideoParams{
 			Name:         fmt.Sprintf("%s-r-%s%d", vod.ID, vod.Platform, rand.Intn(1000)),
 			Title:        fmt.Sprintf("[%s:%s] %s", vod.Platform, vod.ID, vod.Title),
-			BID:          "0.00001",
+			BID:          "0.0001",
 			FilePath:     vod.Path,
 			ValidateFile: false,
 			OptimizeFile: false,
