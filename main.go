@@ -6,7 +6,7 @@ import (
 	"math/rand"
 	"time"
 
-	config "github.com/DggHQ/dggarchiver-config"
+	config "github.com/DggHQ/dggarchiver-config/uploader"
 	log "github.com/DggHQ/dggarchiver-logger"
 	dggarchivermodel "github.com/DggHQ/dggarchiver-model"
 	lbry "github.com/DggHQ/dggarchiver-uploader/lbry"
@@ -28,7 +28,7 @@ func init() {
 
 func main() {
 	cfg := config.Config{}
-	cfg.Load("uploader")
+	cfg.Load()
 
 	if cfg.Uploader.Verbose {
 		log.SetLevel(log.DebugLevel)
