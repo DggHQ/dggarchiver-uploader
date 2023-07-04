@@ -1,0 +1,11 @@
+uploader:
+  lbry:
+    uri: https://example.com/ # lbry-sdk server uri
+    author: example # author name to set for livestreams
+    channel_name: example # channel to upload the livestreams to
+  sqlite: 
+    uri: example.sqlite # path to the SQLite database
+  plugins:
+    enabled: no
+    path: uploader.lua # path to the lua plugin
+  verbose: no # increases log verbosity
