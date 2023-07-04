@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	config "github.com/DggHQ/dggarchiver-config"
+	config "github.com/DggHQ/dggarchiver-config/uploader"
 )
 
 func UploadVideo(config config.Config, params LBRYVideoParams) LBRYVideoResponse {
