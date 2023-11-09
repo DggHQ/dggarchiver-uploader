@@ -5,13 +5,13 @@ import (
 )
 
 // Contains the data structure to send a video upload request to the LBRY daemon
-type LBRYVideoUpload struct {
-	Method string          `json:"method"`
-	Params LBRYVideoParams `json:"params"`
+type VideoUpload struct {
+	Method string      `json:"method"`
+	Params VideoParams `json:"params"`
 }
 
 // Contains the data structure with params to add to the LBRYUpload structure
-type LBRYVideoParams struct {
+type VideoParams struct {
 	Name              string   `json:"name"`
 	Title             string   `json:"title"`
 	BID               string   `json:"bid"`
@@ -32,18 +32,18 @@ type LBRYVideoParams struct {
 }
 
 // Contains the data structure with the response of the LBRY daemon
-type LBRYVideoResponse struct {
-	Result LBRYVideoResult `json:"result,omitempty"`
-	Error  LBRYError
+type VideoResponse struct {
+	Result VideoResult `json:"result,omitempty"`
+	Error  Error
 }
 
 // Contains the data structure with the "result" field of the LBRY response
-type LBRYVideoResult struct {
-	Outputs []LBRYVideoOutputs
+type VideoResult struct {
+	Outputs []VideoOutputs
 }
 
 // Contains the data structure with the "result" field of the LBRY response
-type LBRYVideoOutputs struct {
+type VideoOutputs struct {
 	ClaimID        string `json:"claim_id"`
 	Name           string `json:"name"`
 	NormalizedName string `json:"normalized_name"`
@@ -51,65 +51,65 @@ type LBRYVideoOutputs struct {
 }
 
 // Contains the data structure with the response of the LBRY daemon
-type LBRYError struct {
+type Error struct {
 	Code    int         `json:"code"`
 	Data    interface{} `json:"data"`
 	Message string      `json:"message"`
 }
 
 // Contains the data structure to send a file list request to the LBRY daemon
-type LBRYFileList struct {
-	Method string             `json:"method"`
-	Params LBRYFileListParams `json:"params"`
+type FileList struct {
+	Method string         `json:"method"`
+	Params FileListParams `json:"params"`
 }
 
 // Contains the data structure with params to add to the LBRYFileList structure
-type LBRYFileListParams struct {
+type FileListParams struct {
 	ClaimID string `json:"claim_id"`
 }
 
 // Contains the data structure with the response of the LBRY daemon
-type LBRYFileListResponse struct {
-	Result LBRYFileListResult `json:"result,omitempty"`
-	Error  LBRYError
+type FileListResponse struct {
+	Result FileListResult `json:"result,omitempty"`
+	Error  Error
 }
 
 // Contains the data structure with the "result" field of the LBRY response
-type LBRYFileListResult struct {
-	Items []LBRYFileListItems
+type FileListResult struct {
+	Items []FileListItems
 }
 
 // Contains the data structure with the "result" field of the LBRY response
-type LBRYFileListItems struct {
+type FileListItems struct {
 	UploadingToReflector bool `json:"uploading_to_reflector"`
 	IsFullyReflected     bool `json:"is_fully_reflected"`
 	ReflectorProgress    int  `json:"reflector_progress"`
 }
 
 // Contains the data structure to send a file list request to the LBRY daemon
-type LBRYFileDelete struct {
-	Method string               `json:"method"`
-	Params LBRYFileDeleteParams `json:"params"`
+type FileDelete struct {
+	Method string           `json:"method"`
+	Params FileDeleteParams `json:"params"`
 }
 
 // Contains the data structure with params to add to the LBRYFileList structure
-type LBRYFileDeleteParams struct {
+type FileDeleteParams struct {
 	ClaimID string `json:"claim_id"`
 }
 
 // Contains the data structure with the response of the LBRY daemon
-type LBRYFileDeleteResponse struct {
+type FileDeleteResponse struct {
 	Result zero.Bool `json:"result,omitempty"`
-	Error  LBRYError
+	Error  Error
 }
 
 // Contains the data structure to send a file list request to the LBRY daemon
-type LBRYBlobClean struct {
+type BlobClean struct {
 	Method string `json:"method"`
 }
 
 // Contains the data structure with the response of the LBRY daemon
-type LBRYBlobCleanResponse struct {
+type BlobCleanResponse struct {
 	Result zero.Bool `json:"result,omitempty"`
-	Error  LBRYError
+	Error  Error
 }

@@ -8,24 +8,24 @@ import (
 	config "github.com/DggHQ/dggarchiver-config/uploader"
 )
 
-func UploadVideo(config config.Config, params LBRYVideoParams) LBRYVideoResponse {
-	req := LBRYVideoUpload{
+func UploadVideo(config config.Config, params VideoParams) VideoResponse {
+	req := VideoUpload{
 		Method: "publish",
 		Params: params,
 	}
-	reqJson, err := json.Marshal(req)
+	reqJSON, err := json.Marshal(req)
 	if err != nil {
 		panic(err)
 	}
 
-	resp, err := http.Post(config.Uploader.LBRY.URI, "application/json", bytes.NewBuffer(reqJson))
+	resp, err := http.Post(config.Uploader.LBRY.URI, "application/json", bytes.NewBuffer(reqJSON))
 	if err != nil {
 		panic(err)
 	}
 
 	defer resp.Body.Close()
 
-	result := &LBRYVideoResponse{}
+	result := &VideoResponse{}
 
 	err = json.NewDecoder(resp.Body).Decode(&result)
 	if err != nil {
@@ -35,26 +35,26 @@ func UploadVideo(config config.Config, params LBRYVideoParams) LBRYVideoResponse
 	return *result
 }
 
-func CheckProgress(config config.Config, claim string) LBRYFileListResponse {
-	req := LBRYFileList{
+func CheckProgress(config config.Config, claim string) FileListResponse {
+	req := FileList{
 		Method: "file_list",
-		Params: LBRYFileListParams{
+		Params: FileListParams{
 			ClaimID: claim,
 		},
 	}
-	reqJson, err := json.Marshal(req)
+	reqJSON, err := json.Marshal(req)
 	if err != nil {
 		panic(err)
 	}
 
-	resp, err := http.Post(config.Uploader.LBRY.URI, "application/json", bytes.NewBuffer(reqJson))
+	resp, err := http.Post(config.Uploader.LBRY.URI, "application/json", bytes.NewBuffer(reqJSON))
 	if err != nil {
 		panic(err)
 	}
 
 	defer resp.Body.Close()
 
-	result := &LBRYFileListResponse{}
+	result := &FileListResponse{}
 
 	err = json.NewDecoder(resp.Body).Decode(&result)
 	if err != nil {
@@ -64,26 +64,26 @@ func CheckProgress(config config.Config, claim string) LBRYFileListResponse {
 	return *result
 }
 
-func DeleteFile(config config.Config, claim string) LBRYFileDeleteResponse {
-	req := LBRYFileList{
+func DeleteFile(config config.Config, claim string) FileDeleteResponse {
+	req := FileList{
 		Method: "file_delete",
-		Params: LBRYFileListParams{
+		Params: FileListParams{
 			ClaimID: claim,
 		},
 	}
-	reqJson, err := json.Marshal(req)
+	reqJSON, err := json.Marshal(req)
 	if err != nil {
 		panic(err)
 	}
 
-	resp, err := http.Post(config.Uploader.LBRY.URI, "application/json", bytes.NewBuffer(reqJson))
+	resp, err := http.Post(config.Uploader.LBRY.URI, "application/json", bytes.NewBuffer(reqJSON))
 	if err != nil {
 		panic(err)
 	}
 
 	defer resp.Body.Close()
 
-	result := &LBRYFileDeleteResponse{}
+	result := &FileDeleteResponse{}
 
 	err = json.NewDecoder(resp.Body).Decode(&result)
 	if err != nil {
@@ -93,23 +93,23 @@ func DeleteFile(config config.Config, claim string) LBRYFileDeleteResponse {
 	return *result
 }
 
-func CleanBlobs(config config.Config) LBRYBlobCleanResponse {
-	req := LBRYBlobClean{
+func CleanBlobs(config config.Config) BlobCleanResponse {
+	req := BlobClean{
 		Method: "blob_clean",
 	}
-	reqJson, err := json.Marshal(req)
+	reqJSON, err := json.Marshal(req)
 	if err != nil {
 		panic(err)
 	}
 
-	resp, err := http.Post(config.Uploader.LBRY.URI, "application/json", bytes.NewBuffer(reqJson))
+	resp, err := http.Post(config.Uploader.LBRY.URI, "application/json", bytes.NewBuffer(reqJSON))
 	if err != nil {
 		panic(err)
 	}
 
 	defer resp.Body.Close()
 
-	result := &LBRYBlobCleanResponse{}
+	result := &BlobCleanResponse{}
 
 	err = json.NewDecoder(resp.Body).Decode(&result)
 	if err != nil {

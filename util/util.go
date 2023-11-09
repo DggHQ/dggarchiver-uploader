@@ -70,12 +70,12 @@ func UploadThumbnail(path string) string {
 		return ""
 	}
 
-	if parsed.Type == "success" {
-		return parsed.URL
-	} else {
+	if parsed.Type != "success" {
 		log.Errorf("thumbs.odycdn.com hasn't returned 'success'")
 		return ""
 	}
+
+	return parsed.URL
 }
 
 func CalculateEndTime(startTime string, duration int) string {
