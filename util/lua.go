@@ -14,14 +14,14 @@ type LuaResponse struct {
 	Data    map[string]interface{}
 }
 
-func LuaCallReceiveFunction(L *lua.LState, vod *dggarchivermodel.VOD) *LuaResponse {
-	luaVOD := luar.New(L, vod)
+func LuaCallReceiveFunction(l *lua.LState, vod *dggarchivermodel.VOD) *LuaResponse {
+	luaVOD := luar.New(l, vod)
 
 	result := &LuaResponse{}
-	L.SetGlobal("ReceiveResponse", luar.New(L, result))
+	l.SetGlobal("ReceiveResponse", luar.New(l, result))
 
-	if err := L.CallByParam(lua.P{
-		Fn:      L.GetGlobal("OnReceive"),
+	if err := l.CallByParam(lua.P{
+		Fn:      l.GetGlobal("OnReceive"),
 		NRet:    0,
 		Protect: true,
 	}, luaVOD); err != nil {
@@ -39,14 +39,14 @@ func LuaCallReceiveFunction(L *lua.LState, vod *dggarchivermodel.VOD) *LuaRespon
 	return result
 }
 
-func LuaCallProgressFunction(L *lua.LState, progress int) *LuaResponse {
-	luaProgress := luar.New(L, progress)
+func LuaCallProgressFunction(l *lua.LState, progress int) *LuaResponse {
+	luaProgress := luar.New(l, progress)
 
 	result := &LuaResponse{}
-	L.SetGlobal("ProgressResponse", luar.New(L, result))
+	l.SetGlobal("ProgressResponse", luar.New(l, result))
 
-	if err := L.CallByParam(lua.P{
-		Fn:      L.GetGlobal("OnProgress"),
+	if err := l.CallByParam(lua.P{
+		Fn:      l.GetGlobal("OnProgress"),
 		NRet:    0,
 		Protect: true,
 	}, luaProgress); err != nil {
@@ -64,15 +64,15 @@ func LuaCallProgressFunction(L *lua.LState, progress int) *LuaResponse {
 	return result
 }
 
-func LuaCallFinishFunction(L *lua.LState, vod *dggarchivermodel.VOD, success bool) *LuaResponse {
-	luaVOD := luar.New(L, vod)
-	luaSuccess := luar.New(L, success)
+func LuaCallFinishFunction(l *lua.LState, vod *dggarchivermodel.VOD, success bool) *LuaResponse {
+	luaVOD := luar.New(l, vod)
+	luaSuccess := luar.New(l, success)
 
 	result := &LuaResponse{}
-	L.SetGlobal("FinishResponse", luar.New(L, result))
+	l.SetGlobal("FinishResponse", luar.New(l, result))
 
-	if err := L.CallByParam(lua.P{
-		Fn:      L.GetGlobal("OnFinish"),
+	if err := l.CallByParam(lua.P{
+		Fn:      l.GetGlobal("OnFinish"),
 		NRet:    0,
 		Protect: true,
 	}, luaVOD, luaSuccess); err != nil {
@@ -90,15 +90,15 @@ func LuaCallFinishFunction(L *lua.LState, vod *dggarchivermodel.VOD, success boo
 	return result
 }
 
-func LuaCallInsertFunction(L *lua.LState, vod *dggarchivermodel.VOD, success bool) *LuaResponse {
-	luaVOD := luar.New(L, vod)
-	luaSuccess := luar.New(L, success)
+func LuaCallInsertFunction(l *lua.LState, vod *dggarchivermodel.VOD, success bool) *LuaResponse {
+	luaVOD := luar.New(l, vod)
+	luaSuccess := luar.New(l, success)
 
 	result := &LuaResponse{}
-	L.SetGlobal("InsertResponse", luar.New(L, result))
+	l.SetGlobal("InsertResponse", luar.New(l, result))
 
-	if err := L.CallByParam(lua.P{
-		Fn:      L.GetGlobal("OnInsert"),
+	if err := l.CallByParam(lua.P{
+		Fn:      l.GetGlobal("OnInsert"),
 		NRet:    0,
 		Protect: true,
 	}, luaVOD, luaSuccess); err != nil {
