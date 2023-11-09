@@ -39,7 +39,6 @@ func main() {
 	go monitor.Run()
 
 	L := lua.NewState()
-	defer L.Close()
 	if cfg.Uploader.Plugins.Enabled {
 		luaLibs.Preload(L)
 		if err := L.DoFile(cfg.Uploader.Plugins.PathToPlugin); err != nil {
@@ -74,7 +73,7 @@ func main() {
 			vod.EndTime = util.CalculateEndTime(vod.StartTime, vod.Duration)
 		}
 
-		params := lbry.LBRYVideoParams{
+		params := lbry.VideoParams{
 			Name:         fmt.Sprintf("%s-r-%s%d", vod.ID, vod.Platform, rand.Intn(1000)),
 			Title:        fmt.Sprintf("[%s:%s] %s", vod.Platform, vod.ID, vod.Title),
 			BID:          "0.0001",
@@ -121,7 +120,7 @@ func main() {
 			}
 		}
 
-		uploadProgress := 0
+		var uploadProgress int
 		uploadResult := false
 
 		log.Infof("Waiting for 15 seconds before starting to check progress...")
