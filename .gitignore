@@ -1,1 +1,5 @@
-dggarchiver-uploader*
+.env
+config.yaml
+target/
+data/
+.vscode
