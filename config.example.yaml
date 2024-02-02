@@ -1,8 +1,14 @@
 uploader:
-  lbry:
-    uri: https://example.com/ # lbry-sdk server uri
-    author: example # author name to set for livestreams
-    channel_name: example # channel to upload the livestreams to
+  platforms:
+    lbry:
+      enabled: yes
+      uri: https://example.com/ # lbry-sdk server uri
+      author: example # author name to set for livestreams
+      channel_name: example # channel to upload the livestreams to
+    rumble:
+      enabled: yes
+      login: example # rumble login
+      password: example # rumble password
   sqlite: 
     uri: example.sqlite # path to the SQLite database
   plugins:
