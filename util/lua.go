@@ -1,7 +1,8 @@
 package util
 
 import (
-	log "github.com/DggHQ/dggarchiver-logger"
+	"log/slog"
+
 	dggarchivermodel "github.com/DggHQ/dggarchiver-model"
 	lua "github.com/yuin/gopher-lua"
 	luar "layeh.com/gopher-luar"
@@ -25,13 +26,13 @@ func LuaCallReceiveFunction(l *lua.LState, vod *dggarchivermodel.VOD) *LuaRespon
 		NRet:    0,
 		Protect: true,
 	}, luaVOD); err != nil {
-		log.Debugf("Wasn't able to access the \"OnReceive\" function of the Lua script, skipping: %s", err)
+		slog.Debug("unable to access the \"OnReceive\" function of the Lua script", slog.Any("err", err))
 		return nil
 	}
 
 	if result.Filled {
 		if result.Error {
-			log.Errorf("Wasn't able to execute the \"OnReceive\" function of the Lua script: %s", result.Message)
+			slog.Debug("unable to execute the \"OnReceive\" function of the Lua script", slog.Any("err", result.Message))
 			return nil
 		}
 	}
@@ -50,13 +51,13 @@ func LuaCallProgressFunction(l *lua.LState, progress int) *LuaResponse {
 		NRet:    0,
 		Protect: true,
 	}, luaProgress); err != nil {
-		log.Debugf("Wasn't able to access the \"OnProgress\" function of the Lua script, skipping: %s", err)
+		slog.Debug("unable to access the \"OnProgress\" function of the Lua script", slog.Any("err", err))
 		return nil
 	}
 
 	if result.Filled {
 		if result.Error {
-			log.Errorf("Wasn't able to execute the \"OnProgress\" function of the Lua script: %s", result.Message)
+			slog.Debug("unable to execute the \"OnProgress\" function of the Lua script", slog.Any("err", result.Message))
 			return nil
 		}
 	}
@@ -76,13 +77,13 @@ func LuaCallFinishFunction(l *lua.LState, vod *dggarchivermodel.VOD, success boo
 		NRet:    0,
 		Protect: true,
 	}, luaVOD, luaSuccess); err != nil {
-		log.Debugf("Wasn't able to access the \"OnFinish\" function of the Lua script, skipping: %s", err)
+		slog.Debug("unable to access the \"OnFinish\" function of the Lua script", slog.Any("err", err))
 		return nil
 	}
 
 	if result.Filled {
 		if result.Error {
-			log.Errorf("Wasn't able to execute the \"OnFinish\" function of the Lua script: %s", result.Message)
+			slog.Debug("unable to execute the \"OnFinish\" function of the Lua script", slog.Any("err", result.Message))
 			return nil
 		}
 	}
@@ -102,13 +103,13 @@ func LuaCallInsertFunction(l *lua.LState, vod *dggarchivermodel.VOD, success boo
 		NRet:    0,
 		Protect: true,
 	}, luaVOD, luaSuccess); err != nil {
-		log.Debugf("Wasn't able to access the \"OnInsert\" function of the Lua script, skipping: %s", err)
+		slog.Debug("unable to access the \"OnInsert\" function of the Lua script", slog.Any("err", err))
 		return nil
 	}
 
 	if result.Filled {
 		if result.Error {
-			log.Errorf("Wasn't able to execute the \"OnInsert\" function of the Lua script: %s", result.Message)
+			slog.Debug("unable to execute the \"OnInsert\" function of the Lua script", slog.Any("err", result.Message))
 			return nil
 		}
 	}

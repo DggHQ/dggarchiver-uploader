@@ -1,8 +1,9 @@
 package monitoring
 
 import (
-	"log"
+	"log/slog"
 	"net/http"
+	"os"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -12,12 +13,9 @@ type Monitor struct {
 	CurrentProgress *prometheus.GaugeVec
 }
 
-func (m *Monitor) Run() {
-	http.Handle("/metrics", promhttp.Handler())
-	log.Fatal(http.ListenAndServe(":8080", nil))
-}
+func New() *Monitor {
+	m := &Monitor{}
 
-func (m *Monitor) Init() {
 	m.CurrentProgress = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: "dgghq",
@@ -32,6 +30,14 @@ func (m *Monitor) Init() {
 		},
 	)
 	prometheus.MustRegister(m.CurrentProgress)
+
+	return m
+}
+
+func (m *Monitor) Run() {
+	http.Handle("/metrics", promhttp.Handler())
+	slog.Error("prometheus http error", slog.Any("err", http.ListenAndServe(":8080", nil)))
+	os.Exit(1)
 }
 
 func (m *Monitor) ChangeCurrentProgress(value float64, labels prometheus.Labels) {
