@@ -89,6 +89,17 @@ func (p *Platform) Upload(ctx context.Context, vod *dggarchivermodel.VOD, l *lua
 		return ErrFileTooLarge
 	}
 
+	loggedIn, err := p.IsLoggedIn(ctx)
+	if err != nil {
+		return err
+	}
+
+	if !loggedIn {
+		if err := p.Login(ctx); err != nil {
+			return err
+		}
+	}
+
 	slog.Debug("getting the upload url", slog.String("platform", platformName), slogVodGroup)
 	u, err := p.getUploadURL(ctx)
 	if err != nil {
