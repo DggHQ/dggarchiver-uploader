@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"math"
 	"math/rand"
 	"mime/multipart"
 	"net/http"
@@ -343,10 +344,13 @@ func (p *Platform) putUpload(ctx context.Context, f *os.File, fi os.FileInfo, u 
 			return "", 0, ErrStatusCode
 		}
 
+		percentRatio := math.Pow10(3)
+		percent := math.Round(((float64(i+1)/float64(len(chunkNames)))*100)*percentRatio) / percentRatio
+
 		slog.Info("progress",
 			slog.Int("chunk", i+1),
 			slog.Int("chunks", len(chunkNames)),
-			slog.Float64("percent", (float64(i+1)/float64(len(chunkNames)))*100),
+			slog.Float64("percent", percent),
 			slog.String("file", fileName),
 		)
 	}
