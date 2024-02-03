@@ -27,6 +27,7 @@ import (
 )
 
 var (
+	ErrNoURLsReceived       = errors.New("no urls received from rumble")
 	ErrFileTooLarge         = errors.New("file too large")
 	ErrNoUploadServer       = errors.New("no upload server found")
 	APIVersion              = "1.3"
@@ -545,6 +546,10 @@ func (p *Platform) sendUploadForm(ctx context.Context, u *url.URL, info uploadFo
 
 	regularURL := regularURLRegexp.FindString(string(ret))
 	embedURL := embedURLRegexp.FindString(string(ret))
+
+	if len(regularURL) == 0 || len(embedURL) == 0 {
+		return "", ErrNoURLsReceived
+	}
 
 	return fmt.Sprintf("%s %s", regularURL, embedURL), nil
 }
