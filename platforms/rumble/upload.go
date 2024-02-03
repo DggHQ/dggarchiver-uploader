@@ -278,7 +278,7 @@ func (p *Platform) bigUpload(ctx context.Context, vod *dggarchivermodel.VOD, f *
 		ServerFileName: serverFileName,
 		Tags:           "destiny,vod,yee wins,reupload,mirror",
 		Category:       "15",
-		Visibility:     "private",
+		Visibility:     "public",
 		Thumbnail:      selectedThumb,
 		Metadata: fileMetadata{
 			Name:      fi.Name(),
