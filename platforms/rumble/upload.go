@@ -309,8 +309,9 @@ func (p *Platform) putUpload(ctx context.Context, f *os.File, fi os.FileInfo, u 
 	}
 
 	r := bufio.NewReader(f)
+	chunk := make([]byte, maxSingleChunk)
 
-	for _, v := range chunkNames {
+	for i, v := range chunkNames {
 		uWithChunk := *u
 		qVals := uWithChunk.Query()
 		qVals.Add("chunk", v)
@@ -318,8 +319,7 @@ func (p *Platform) putUpload(ctx context.Context, f *os.File, fi os.FileInfo, u 
 		qVals.Add("chunkQty", fmt.Sprintf("%d", chunkQty))
 		uWithChunk.RawQuery = qVals.Encode()
 
-		chunk := make([]byte, maxSingleChunk)
-		_, err := r.Read(chunk)
+		bytesRead, err := r.Read(chunk)
 		if err != nil {
 			if err.Error() == "EOF" {
 				break
@@ -327,7 +327,7 @@ func (p *Platform) putUpload(ctx context.Context, f *os.File, fi os.FileInfo, u 
 			return "", 0, err
 		}
 
-		req, err := http.NewRequestWithContext(ctx, "PUT", uWithChunk.String(), bytes.NewBuffer(chunk))
+		req, err := http.NewRequestWithContext(ctx, "PUT", uWithChunk.String(), bytes.NewBuffer(chunk[:bytesRead]))
 		if err != nil {
 			return "", 0, err
 		}
@@ -341,6 +341,13 @@ func (p *Platform) putUpload(ctx context.Context, f *os.File, fi os.FileInfo, u 
 		if resp.StatusCode != http.StatusOK {
 			return "", 0, ErrStatusCode
 		}
+
+		slog.Info("progress",
+			slog.Int("chunk", i+1),
+			slog.Int("chunks", len(chunkNames)),
+			slog.Float64("percent", (float64(i+1)/float64(len(chunkNames)))*100),
+			slog.String("file", fileName),
+		)
 	}
 
 	uMerge := *u
@@ -514,10 +521,6 @@ func (p *Platform) sendUploadForm(ctx context.Context, u *url.URL, info uploadFo
 	data.Set("visibility", info.Visibility)
 	data.Set("file_meta", string(meta))
 	data.Set("thumb", info.Thumbnail)
-
-	// formData := fmt.Sprintf(`title=%s&description=%s&video[]=%s&featured=0&rights=1&terms=1&facebookUpload=&vimeoUpload=&infoWho=&infoWhen=&infoWhere=&infoExtUser=&tags=%s&channelId=0
-	// &sideChannelId=%s&mediaChannelId=&visibility=%s&file_meta=%s&thumb=%s`, info.Title, info.Description, info.ServerFileName, info.Tags, info.Category, info.Visibility, string(meta), info.Thumbnail)
-	// formData = url.QueryEscape(formData)
 
 	req, err := http.NewRequestWithContext(ctx, "POST", uWithForm.String(), strings.NewReader(data.Encode()))
 	if err != nil {
