@@ -258,8 +258,22 @@ func (p *Platform) bigUpload(ctx context.Context, vod *dggarchivermodel.VOD, f *
 
 	speed := ((fi.Size()) / (timeEnd.UnixMilli() - timeStart.UnixMilli())) * 100
 
+	processedTitle := ""
+	for i, v := range strings.Fields(fmt.Sprintf("[%s:%s] %s", vod.Platform, vod.ID, vod.Title)) {
+		var t string
+		if i == 0 {
+			t = v
+		} else {
+			t = fmt.Sprintf("%s %s", processedTitle, v)
+		}
+		if len(t) > 99 {
+			break
+		}
+		processedTitle = t
+	}
+
 	info := uploadFormTemplate{
-		Title:          fmt.Sprintf("[%s:%s] %s", vod.Platform, vod.ID, vod.Title),
+		Title:          processedTitle,
 		Description:    fmt.Sprintf("%s\n%s", vod.StartTime, vod.EndTime),
 		ServerFileName: serverFileName,
 		Tags:           "destiny,vod,yee wins,reupload,mirror",
