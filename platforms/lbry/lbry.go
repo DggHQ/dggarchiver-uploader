@@ -237,7 +237,7 @@ func (p *Platform) uploadVideo(params VideoParams) VideoResponse {
 		panic(err)
 	}
 
-	resp, err := http.Post(p.cfg.SQLite.URI, "application/json", bytes.NewBuffer(reqJSON))
+	resp, err := http.Post(p.cfg.Platforms.LBRY.URI, "application/json", bytes.NewBuffer(reqJSON))
 	if err != nil {
 		panic(err)
 	}
@@ -266,7 +266,7 @@ func (p *Platform) checkProgress(claim string) FileListResponse {
 		panic(err)
 	}
 
-	resp, err := http.Post(p.cfg.SQLite.URI, "application/json", bytes.NewBuffer(reqJSON))
+	resp, err := http.Post(p.cfg.Platforms.LBRY.URI, "application/json", bytes.NewBuffer(reqJSON))
 	if err != nil {
 		panic(err)
 	}
@@ -295,7 +295,7 @@ func (p *Platform) deleteFile(claim string) FileDeleteResponse {
 		panic(err)
 	}
 
-	resp, err := http.Post(p.cfg.SQLite.URI, "application/json", bytes.NewBuffer(reqJSON))
+	resp, err := http.Post(p.cfg.Platforms.LBRY.URI, "application/json", bytes.NewBuffer(reqJSON))
 	if err != nil {
 		panic(err)
 	}
@@ -321,7 +321,7 @@ func (p *Platform) cleanBlobs() BlobCleanResponse {
 		panic(err)
 	}
 
-	resp, err := http.Post(p.cfg.SQLite.URI, "application/json", bytes.NewBuffer(reqJSON))
+	resp, err := http.Post(p.cfg.Platforms.LBRY.URI, "application/json", bytes.NewBuffer(reqJSON))
 	if err != nil {
 		panic(err)
 	}
