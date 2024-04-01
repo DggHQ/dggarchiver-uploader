@@ -102,7 +102,10 @@ func (p *Platform) Upload(_ context.Context, vod *dggarchivermodel.VOD, l *lua.L
 	}
 
 	slog.Info("starting to upload", slog.String("platform", platformName), slogVodGroup)
-	result := p.uploadVideo(params)
+	result, err := p.uploadVideo(params)
+	if err != nil {
+		return err
+	}
 	if result.Error.Code != 0 {
 		return errors.New(result.Error.Message)
 	}
@@ -133,7 +136,10 @@ func (p *Platform) Upload(_ context.Context, vod *dggarchivermodel.VOD, l *lua.L
 	time.Sleep(15 * time.Second)
 
 	for !uploadResult {
-		progressResult := p.checkProgress(claim)
+		progressResult, err := p.checkProgress(claim)
+		if err != nil {
+			return err
+		}
 		if progressResult.Error.Code != 0 {
 			return errors.New(result.Error.Message)
 		}
@@ -166,7 +172,10 @@ func (p *Platform) Upload(_ context.Context, vod *dggarchivermodel.VOD, l *lua.L
 
 	if uploadResult {
 		slog.Info("VOD uploaded", slog.String("platform", platformName), slogVodGroup)
-		removalStatus := p.deleteFile(claim)
+		removalStatus, err := p.deleteFile(claim)
+		if err != nil {
+			return err
+		}
 		if removalStatus.Error.Code != 0 {
 			slog.Warn("unable to delete VOD",
 				slog.String("platform", platformName),
@@ -175,7 +184,10 @@ func (p *Platform) Upload(_ context.Context, vod *dggarchivermodel.VOD, l *lua.L
 			)
 		}
 		if !removalStatus.Result.Bool {
-			cleanBlobsStatusResponse := p.cleanBlobs()
+			cleanBlobsStatusResponse, err := p.cleanBlobs()
+			if err != nil {
+				return err
+			}
 			if cleanBlobsStatusResponse.Error.Code != 0 {
 				slog.Warn("unable to clean VOD blobs",
 					slog.String("platform", platformName),
@@ -201,7 +213,7 @@ func (p *Platform) Upload(_ context.Context, vod *dggarchivermodel.VOD, l *lua.L
 		}
 		addInfoBytes, _ := json.Marshal(addInfo)
 
-		err := p.cfg.SQLite.DB.Create(&dggarchivermodel.UploadedVOD{
+		err = p.cfg.SQLite.DB.Create(&dggarchivermodel.UploadedVOD{
 			HostingPlatform:       platformName,
 			VOD:                   *vod,
 			HostingAdditionalInfo: addInfoBytes,
@@ -227,34 +239,34 @@ func (p *Platform) Upload(_ context.Context, vod *dggarchivermodel.VOD, l *lua.L
 	return nil
 }
 
-func (p *Platform) uploadVideo(params VideoParams) VideoResponse {
+func (p *Platform) uploadVideo(params VideoParams) (VideoResponse, error) {
 	req := VideoUpload{
 		Method: "publish",
 		Params: params,
 	}
 	reqJSON, err := json.Marshal(req)
 	if err != nil {
-		panic(err)
+		return VideoResponse{}, err
 	}
 
 	resp, err := http.Post(p.cfg.Platforms.LBRY.URI, "application/json", bytes.NewBuffer(reqJSON))
 	if err != nil {
-		panic(err)
+		return VideoResponse{}, err
 	}
 
 	defer resp.Body.Close()
 
-	result := &VideoResponse{}
+	result := VideoResponse{}
 
 	err = json.NewDecoder(resp.Body).Decode(&result)
 	if err != nil {
-		panic(err)
+		return result, err
 	}
 
-	return *result
+	return result, nil
 }
 
-func (p *Platform) checkProgress(claim string) FileListResponse {
+func (p *Platform) checkProgress(claim string) (FileListResponse, error) {
 	req := FileList{
 		Method: "file_list",
 		Params: FileListParams{
@@ -263,27 +275,27 @@ func (p *Platform) checkProgress(claim string) FileListResponse {
 	}
 	reqJSON, err := json.Marshal(req)
 	if err != nil {
-		panic(err)
+		return FileListResponse{}, err
 	}
 
 	resp, err := http.Post(p.cfg.Platforms.LBRY.URI, "application/json", bytes.NewBuffer(reqJSON))
 	if err != nil {
-		panic(err)
+		return FileListResponse{}, err
 	}
 
 	defer resp.Body.Close()
 
-	result := &FileListResponse{}
+	result := FileListResponse{}
 
 	err = json.NewDecoder(resp.Body).Decode(&result)
 	if err != nil {
-		panic(err)
+		return result, err
 	}
 
-	return *result
+	return result, nil
 }
 
-func (p *Platform) deleteFile(claim string) FileDeleteResponse {
+func (p *Platform) deleteFile(claim string) (FileDeleteResponse, error) {
 	req := FileList{
 		Method: "file_delete",
 		Params: FileListParams{
@@ -292,48 +304,48 @@ func (p *Platform) deleteFile(claim string) FileDeleteResponse {
 	}
 	reqJSON, err := json.Marshal(req)
 	if err != nil {
-		panic(err)
+		return FileDeleteResponse{}, err
 	}
 
 	resp, err := http.Post(p.cfg.Platforms.LBRY.URI, "application/json", bytes.NewBuffer(reqJSON))
 	if err != nil {
-		panic(err)
+		return FileDeleteResponse{}, err
 	}
 
 	defer resp.Body.Close()
 
-	result := &FileDeleteResponse{}
+	result := FileDeleteResponse{}
 
 	err = json.NewDecoder(resp.Body).Decode(&result)
 	if err != nil {
-		panic(err)
+		return result, err
 	}
 
-	return *result
+	return result, nil
 }
 
-func (p *Platform) cleanBlobs() BlobCleanResponse {
+func (p *Platform) cleanBlobs() (BlobCleanResponse, error) {
 	req := BlobClean{
 		Method: "blob_clean",
 	}
 	reqJSON, err := json.Marshal(req)
 	if err != nil {
-		panic(err)
+		return BlobCleanResponse{}, err
 	}
 
 	resp, err := http.Post(p.cfg.Platforms.LBRY.URI, "application/json", bytes.NewBuffer(reqJSON))
 	if err != nil {
-		panic(err)
+		return BlobCleanResponse{}, err
 	}
 
 	defer resp.Body.Close()
 
-	result := &BlobCleanResponse{}
+	result := BlobCleanResponse{}
 
 	err = json.NewDecoder(resp.Body).Decode(&result)
 	if err != nil {
-		panic(err)
+		return result, err
 	}
 
-	return *result
+	return result, nil
 }

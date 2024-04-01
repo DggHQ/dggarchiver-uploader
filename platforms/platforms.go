@@ -73,9 +73,11 @@ func (p *Platforms) Start() {
 			imp, err := implementation.Map[v](p.cfg, p.monitor)
 			if err != nil {
 				slog.Error("unable to create a platform", slog.Any("err", err))
+				continue
 			}
 			if err := imp.Upload(ctx, vod, l); err != nil {
 				slog.Error("upload error", slog.Any("err", err))
+				continue
 			}
 
 			time.Sleep(time.Second * 1)
