@@ -73,17 +73,19 @@ func (p *Platforms) Start() {
 			return
 		}
 
-		slog.Info("received a vod", slog.Any("vod", vod))
-		if p.cfg.Plugins.Enabled {
-			util.LuaCallReceiveFunction(l, vod)
-		}
-
 		for _, f := range p.filters {
 			if f.MatchString(vod.Title) {
 				slog.Info("vod filtered", slog.Any("vod", vod))
-				util.LuaCallFilteredFunction(l, vod, f.String())
+				if p.cfg.Plugins.Enabled {
+					util.LuaCallFilteredFunction(l, vod, f.String())
+				}
 				return
 			}
+		}
+
+		slog.Info("received a vod", slog.Any("vod", vod))
+		if p.cfg.Plugins.Enabled {
+			util.LuaCallReceiveFunction(l, vod)
 		}
 
 		ctx := context.Background()
