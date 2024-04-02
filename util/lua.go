@@ -116,3 +116,29 @@ func LuaCallInsertFunction(l *lua.LState, vod *dggarchivermodel.VOD, success boo
 
 	return result
 }
+
+func LuaCallFilteredFunction(l *lua.LState, vod *dggarchivermodel.VOD, filter string) *LuaResponse {
+	luaVOD := luar.New(l, vod)
+	luaFilter := luar.New(l, filter)
+
+	result := &LuaResponse{}
+	l.SetGlobal("FilteredResponse", luar.New(l, result))
+
+	if err := l.CallByParam(lua.P{
+		Fn:      l.GetGlobal("OnFiltered"),
+		NRet:    0,
+		Protect: true,
+	}, luaVOD, luaFilter); err != nil {
+		slog.Debug("unable to access the \"OnFiltered\" function of the Lua script", slog.Any("err", err))
+		return nil
+	}
+
+	if result.Filled {
+		if result.Error {
+			slog.Debug("unable to execute the \"OnFiltered\" function of the Lua script", slog.Any("err", result.Message))
+			return nil
+		}
+	}
+
+	return result
+}

@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"os"
 	"reflect"
+	"regexp"
 	"strings"
 	"time"
 
@@ -24,24 +25,34 @@ type Platforms struct {
 	enabledPlatforms []string
 	monitor          *monitoring.Monitor
 	cfg              *config.Config
+	filters          []*regexp.Regexp
 }
 
-func New(cfg *config.Config, monitor *monitoring.Monitor) *Platforms {
-	enabledPlatforms := []string{}
+func New(cfg *config.Config, monitor *monitoring.Monitor) (*Platforms, error) {
+	p := Platforms{
+		enabledPlatforms: []string{},
+		monitor:          monitor,
+		cfg:              cfg,
+		filters:          []*regexp.Regexp{},
+	}
 
 	platformsValue := reflect.ValueOf(cfg.Platforms)
 	platformsFields := reflect.VisibleFields(reflect.TypeOf(cfg.Platforms))
 	for _, field := range platformsFields {
 		if platformsValue.FieldByName(field.Name).FieldByName("Enabled").Bool() {
-			enabledPlatforms = append(enabledPlatforms, strings.ToLower(field.Name))
+			p.enabledPlatforms = append(p.enabledPlatforms, strings.ToLower(field.Name))
 		}
 	}
 
-	return &Platforms{
-		enabledPlatforms: enabledPlatforms,
-		monitor:          monitor,
-		cfg:              cfg,
+	for _, f := range cfg.Filters {
+		exp, err := regexp.Compile(f)
+		if err != nil {
+			return nil, err
+		}
+		p.filters = append(p.filters, exp)
 	}
+
+	return &p, nil
 }
 
 func (p *Platforms) Start() {
@@ -65,6 +76,14 @@ func (p *Platforms) Start() {
 		slog.Info("received a vod", slog.Any("vod", vod))
 		if p.cfg.Plugins.Enabled {
 			util.LuaCallReceiveFunction(l, vod)
+		}
+
+		for _, f := range p.filters {
+			if f.MatchString(vod.Title) {
+				slog.Info("vod filtered", slog.Any("vod", vod))
+				util.LuaCallFilteredFunction(l, vod, f.String())
+				return
+			}
 		}
 
 		ctx := context.Background()

@@ -2,6 +2,7 @@ package main
 
 import (
 	"log/slog"
+	"os"
 
 	config "github.com/DggHQ/dggarchiver-config/uploader"
 	"github.com/DggHQ/dggarchiver-uploader/monitoring"
@@ -19,6 +20,10 @@ func main() {
 
 	slog.Info("running the uploader service")
 
-	p := platforms.New(cfg, monitor)
+	p, err := platforms.New(cfg, monitor)
+	if err != nil {
+		slog.Error("unable to initialize platforms", slog.Any("err", err))
+		os.Exit(1)
+	}
 	p.Start()
 }
