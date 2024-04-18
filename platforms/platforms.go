@@ -79,7 +79,8 @@ func (p *Platforms) Start() {
 				if p.cfg.Plugins.Enabled {
 					util.LuaCallFilteredFunction(l, vod, f.String())
 				}
-				return
+				vod.Visibility = 1
+				break
 			}
 		}
 

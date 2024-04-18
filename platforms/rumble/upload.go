@@ -223,6 +223,13 @@ func (p *Platform) smallUpload(ctx context.Context, vod *dggarchivermodel.VOD, f
 		},
 	}
 
+	switch vod.Visibility {
+	case 1:
+		info.Visibility = "unlisted"
+	case 2:
+		info.Visibility = "private"
+	}
+
 	res, err := p.sendUploadForm(ctx, u, info)
 	if err != nil {
 		return "", err
@@ -292,6 +299,13 @@ func (p *Platform) bigUpload(ctx context.Context, vod *dggarchivermodel.VOD, f *
 			TimeStart: timeStart.UnixMilli(),
 			TimeEnd:   timeEnd.UnixMilli(),
 		},
+	}
+
+	switch vod.Visibility {
+	case 1:
+		info.Visibility = "unlisted"
+	case 2:
+		info.Visibility = "private"
 	}
 
 	res, err := p.sendUploadForm(ctx, u, info)

@@ -101,6 +101,10 @@ func (p *Platform) Upload(_ context.Context, vod *dggarchivermodel.VOD, l *lua.L
 		Blocking:          true,
 	}
 
+	if vod.Visibility == 1 || vod.Visibility == 2 {
+		params.Tags = append(params.Tags, "c:unlisted")
+	}
+
 	slog.Info("starting to upload", slog.String("platform", platformName), slogVodGroup)
 	result, err := p.uploadVideo(params)
 	if err != nil {
