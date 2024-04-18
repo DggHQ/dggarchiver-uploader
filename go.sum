@@ -5,6 +5,8 @@ github.com/DggHQ/dggarchiver-config v0.0.0-20240202181241-069822c2115e h1:efu+x8
 github.com/DggHQ/dggarchiver-config v0.0.0-20240202181241-069822c2115e/go.mod h1:1awxjCT6+Lvp8OLvrGrz4XOKrhluhRnIB1tNsRbyLIE=
 github.com/DggHQ/dggarchiver-config v0.0.0-20240402051901-4a1218774d30 h1:AvVAFoO3NVxf58i+P93bjrrz/1i6HqbbEL9/o48JwHg=
 github.com/DggHQ/dggarchiver-config v0.0.0-20240402051901-4a1218774d30/go.mod h1:1awxjCT6+Lvp8OLvrGrz4XOKrhluhRnIB1tNsRbyLIE=
+github.com/DggHQ/dggarchiver-config v0.0.0-20240418125439-18039ee1d1ad h1:61gAHKxBBCBiHIt/UdevrzrjJ10zGk6shEbnyAmghiQ=
+github.com/DggHQ/dggarchiver-config v0.0.0-20240418125439-18039ee1d1ad/go.mod h1:1awxjCT6+Lvp8OLvrGrz4XOKrhluhRnIB1tNsRbyLIE=
 github.com/DggHQ/dggarchiver-model v0.0.0-20240202175036-7f6d338794fe h1:lFOJTdWqKfp+AZwqc0K59hojY4w8tV/l69BdAvroaUE=
 github.com/DggHQ/dggarchiver-model v0.0.0-20240202175036-7f6d338794fe/go.mod h1:KPXeH8tl5G8xxCz2LdBq5dO1gfSrehCeDMtiCr8MFQg=
 github.com/DggHQ/dggarchiver-model v0.0.0-20240418115146-74b9572e914e h1:ujnhgbjazRNsb2Yy09KZrganebv7RTl/ok841+gIfFY=

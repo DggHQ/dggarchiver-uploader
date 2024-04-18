@@ -5,7 +5,7 @@ go 1.21
 toolchain go1.22.1
 
 require (
-	github.com/DggHQ/dggarchiver-config v0.0.0-20240402051901-4a1218774d30
+	github.com/DggHQ/dggarchiver-config v0.0.0-20240418125439-18039ee1d1ad
 	github.com/DggHQ/dggarchiver-model v0.0.0-20240418115146-74b9572e914e
 	github.com/PuerkitoBio/goquery v1.9.1
 	github.com/nats-io/nats.go v1.34.0

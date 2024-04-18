@@ -26,6 +26,7 @@ type Platforms struct {
 	monitor          *monitoring.Monitor
 	cfg              *config.Config
 	filters          []*regexp.Regexp
+	filtersBehaviour string
 }
 
 func New(cfg *config.Config, monitor *monitoring.Monitor) (*Platforms, error) {
@@ -34,6 +35,7 @@ func New(cfg *config.Config, monitor *monitoring.Monitor) (*Platforms, error) {
 		monitor:          monitor,
 		cfg:              cfg,
 		filters:          []*regexp.Regexp{},
+		filtersBehaviour: cfg.Filters.Behaviour,
 	}
 
 	platformsValue := reflect.ValueOf(cfg.Platforms)
@@ -44,7 +46,7 @@ func New(cfg *config.Config, monitor *monitoring.Monitor) (*Platforms, error) {
 		}
 	}
 
-	for _, f := range cfg.Filters {
+	for _, f := range cfg.Filters.List {
 		exp, err := regexp.Compile(f)
 		if err != nil {
 			return nil, err
@@ -73,14 +75,23 @@ func (p *Platforms) Start() {
 			return
 		}
 
+	filterLoop:
 		for _, f := range p.filters {
 			if f.MatchString(vod.Title) {
 				slog.Info("vod filtered", slog.Any("vod", vod))
 				if p.cfg.Plugins.Enabled {
 					util.LuaCallFilteredFunction(l, vod, f.String())
 				}
-				vod.Visibility = 1
-				break
+				switch p.filtersBehaviour {
+				case "private":
+					vod.Visibility = 2
+					break filterLoop
+				case "unlist":
+					vod.Visibility = 1
+					break filterLoop
+				default:
+					return
+				}
 			}
 		}
 
