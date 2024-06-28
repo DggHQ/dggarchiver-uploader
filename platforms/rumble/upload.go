@@ -28,14 +28,14 @@ import (
 )
 
 var (
-	ErrNoURLsReceived       = errors.New("no urls received from rumble")
-	ErrFileTooLarge         = errors.New("file too large")
-	ErrNoUploadServer       = errors.New("no upload server found")
-	APIVersion              = "1.3"
-	maxSingleChunk    int64 = 5000000
-	maxFileSize       int64 = 15000000000 // 15 gigs is max file size on rumble (3000 chunks of maxSingleChunk size)
-	regularURLRegexp        = regexp.MustCompile(`(?U)https:\/\/rumble\.com\/v.*\.html`)
-	embedURLRegexp          = regexp.MustCompile(`(?U)https:\/\/rumble\.com\/embed\/v.*\/`)
+	ErrNoURLsReceived        = errors.New("no urls received from rumble")
+	ErrFileTooLarge          = errors.New("file too large")
+	ErrNoUploadServer        = errors.New("no upload server found")
+	APIVersion               = "1.3"
+	defaultSingleChunk int64 = 10000000
+	maxFileSize        int64 = 15000000000 // 15 gigs is max file size on rumble (3000 chunks of maxSingleChunk size)
+	regularURLRegexp         = regexp.MustCompile(`(?U)https:\/\/rumble\.com\/v.*\.html`)
+	embedURLRegexp           = regexp.MustCompile(`(?U)https:\/\/rumble\.com\/embed\/v.*\/`)
 )
 
 type uploadFormTemplate struct {
@@ -103,19 +103,19 @@ func (p *Platform) Upload(ctx context.Context, vod *dggarchivermodel.VOD, l *lua
 	}
 
 	slog.Debug("getting the upload url", slog.String("platform", platformName), slogVodGroup)
-	u, err := p.getUploadURL(ctx)
+	u, chunkSize, err := p.getUploadURL(ctx)
 	if err != nil {
 		return err
 	}
 
 	slog.Info("starting to upload", slog.String("platform", platformName), slogVodGroup)
 	var urls string
-	if fi.Size() < maxSingleChunk {
+	if fi.Size() < chunkSize {
 		if urls, err = p.smallUpload(ctx, vod, f, fi, u); err != nil {
 			return err
 		}
 	} else {
-		if urls, err = p.bigUpload(ctx, vod, f, fi, u); err != nil {
+		if urls, err = p.bigUpload(ctx, vod, f, fi, u, chunkSize); err != nil {
 			return err
 		}
 	}
@@ -141,38 +141,48 @@ func (p *Platform) Upload(ctx context.Context, vod *dggarchivermodel.VOD, l *lua
 	return nil
 }
 
-func (p *Platform) getUploadURL(ctx context.Context) (*url.URL, error) {
+func (p *Platform) getUploadURL(ctx context.Context) (*url.URL, int64, error) {
 	req, err := http.NewRequestWithContext(ctx, "GET", "https://rumble.com/upload.php", nil)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
 	resp, err := p.client.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, ErrStatusCode
+		return nil, 0, ErrStatusCode
 	}
 
 	doc, err := goquery.NewDocumentFromReader(resp.Body)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
 	uploadServer, exists := doc.Find("input#upload_server").Attr("value")
 	if !exists {
-		return nil, ErrNoUploadServer
+		return nil, 0, ErrNoUploadServer
 	}
 
 	u, err := url.Parse(fmt.Sprintf("https://%s.rumble.com/upload.php?api=%s", uploadServer, APIVersion))
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
-	return u, nil
+	chunkSizeStr, exists := doc.Find("input#bytes_per_chunk").Attr("value")
+	if !exists {
+		return u, defaultSingleChunk, nil
+	}
+
+	chunkSize, err := strconv.ParseInt(chunkSizeStr, 10, 0)
+	if err != nil {
+		return u, defaultSingleChunk, nil
+	}
+
+	return u, chunkSize, nil
 }
 
 func (p *Platform) smallUpload(ctx context.Context, vod *dggarchivermodel.VOD, f *os.File, fi os.FileInfo, u *url.URL) (string, error) {
@@ -187,7 +197,13 @@ func (p *Platform) smallUpload(ctx context.Context, vod *dggarchivermodel.VOD, f
 
 	_, err = p.checkDuration(ctx, u, fileName)
 	if err != nil {
-		return "", err
+		slog.Warn("unable to check duration",
+			slog.Group("vod",
+				slog.String("platform", vod.Platform),
+				slog.String("id", vod.ID),
+			),
+			slog.Any("err", err),
+		)
 	}
 
 	thumb, err := p.checkThumbnails(ctx, u, fileName)
@@ -238,11 +254,11 @@ func (p *Platform) smallUpload(ctx context.Context, vod *dggarchivermodel.VOD, f
 	return res, err
 }
 
-func (p *Platform) bigUpload(ctx context.Context, vod *dggarchivermodel.VOD, f *os.File, fi os.FileInfo, u *url.URL) (string, error) {
+func (p *Platform) bigUpload(ctx context.Context, vod *dggarchivermodel.VOD, f *os.File, fi os.FileInfo, u *url.URL, chunkSize int64) (string, error) {
 	timeStart := time.Now()
 
 	initialFileName := generatePutName(fi.Name(), timeStart)
-	serverFileName, chunkQty, err := p.putUpload(ctx, f, fi, u, initialFileName)
+	serverFileName, chunkQty, err := p.putUpload(ctx, f, fi, u, initialFileName, chunkSize)
 	if err != nil {
 		return "", err
 	}
@@ -251,7 +267,13 @@ func (p *Platform) bigUpload(ctx context.Context, vod *dggarchivermodel.VOD, f *
 
 	_, err = p.checkDuration(ctx, u, serverFileName)
 	if err != nil {
-		return "", err
+		slog.Warn("unable to check duration",
+			slog.Group("vod",
+				slog.String("platform", vod.Platform),
+				slog.String("id", vod.ID),
+			),
+			slog.Any("err", err),
+		)
 	}
 
 	thumb, err := p.checkThumbnails(ctx, u, serverFileName)
@@ -316,8 +338,8 @@ func (p *Platform) bigUpload(ctx context.Context, vod *dggarchivermodel.VOD, f *
 	return res, nil
 }
 
-func (p *Platform) putUpload(ctx context.Context, f *os.File, fi os.FileInfo, u *url.URL, fileName string) (string, int, error) {
-	chunkQty := int(fi.Size() / maxSingleChunk)
+func (p *Platform) putUpload(ctx context.Context, f *os.File, fi os.FileInfo, u *url.URL, fileName string, chunkSize int64) (string, int, error) {
+	chunkQty := int(math.Ceil(float64(fi.Size()) / float64(chunkSize)))
 
 	chunkNames := []string{}
 	for i := 0; i < chunkQty; i++ {
@@ -325,13 +347,13 @@ func (p *Platform) putUpload(ctx context.Context, f *os.File, fi os.FileInfo, u 
 	}
 
 	r := bufio.NewReader(f)
-	chunk := make([]byte, maxSingleChunk)
+	chunk := make([]byte, chunkSize)
 
 	for i, v := range chunkNames {
 		uWithChunk := *u
 		qVals := uWithChunk.Query()
 		qVals.Add("chunk", v)
-		qVals.Add("chunkSz", fmt.Sprintf("%d", maxSingleChunk))
+		qVals.Add("chunkSz", fmt.Sprintf("%d", chunkSize))
 		qVals.Add("chunkQty", fmt.Sprintf("%d", chunkQty))
 		uWithChunk.RawQuery = qVals.Encode()
 
@@ -373,7 +395,7 @@ func (p *Platform) putUpload(ctx context.Context, f *os.File, fi os.FileInfo, u 
 	qVals := uMerge.Query()
 	qVals.Add("merge", fmt.Sprintf("%d", chunkQty-1))
 	qVals.Add("chunk", fileName)
-	qVals.Add("chunkSz", fmt.Sprintf("%d", maxSingleChunk))
+	qVals.Add("chunkSz", fmt.Sprintf("%d", chunkSize))
 	qVals.Add("chunkQty", fmt.Sprintf("%d", chunkQty))
 	uMerge.RawQuery = qVals.Encode()
 
