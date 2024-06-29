@@ -5,7 +5,7 @@ go 1.21
 toolchain go1.22.1
 
 require (
-	github.com/DggHQ/dggarchiver-config v0.0.0-20240418125439-18039ee1d1ad
+	github.com/DggHQ/dggarchiver-config v0.0.0-20240629045406-ed217bf78818
 	github.com/DggHQ/dggarchiver-model v0.0.0-20240418115146-74b9572e914e
 	github.com/PuerkitoBio/goquery v1.9.1
 	github.com/nats-io/nats.go v1.34.0
@@ -27,6 +27,7 @@ require (
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/cheggaaa/pb/v3 v3.1.5 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
+	github.com/eventials/go-tus v0.0.0-20220610120217-05d0564bb571 // indirect
 	github.com/fatih/color v1.16.0 // indirect
 	github.com/glebarez/go-sqlite v1.22.0 // indirect
 	github.com/glebarez/sqlite v1.11.0 // indirect

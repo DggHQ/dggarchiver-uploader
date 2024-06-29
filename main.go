@@ -9,6 +9,7 @@ import (
 	"github.com/DggHQ/dggarchiver-uploader/platforms"
 
 	_ "github.com/DggHQ/dggarchiver-uploader/platforms/lbry"
+	_ "github.com/DggHQ/dggarchiver-uploader/platforms/odysee"
 	_ "github.com/DggHQ/dggarchiver-uploader/platforms/rumble"
 )
 

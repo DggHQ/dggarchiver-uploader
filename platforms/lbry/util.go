@@ -24,7 +24,7 @@ type odycdnThumbnailResponse struct {
 	Message  string `json:"message"`
 }
 
-func uploadThumbnail(path string) (string, error) {
+func UploadThumbnail(path string) (string, error) {
 	form := new(bytes.Buffer)
 	writer := multipart.NewWriter(form)
 	fw, err := writer.CreateFormFile("file-input", filepath.Base(path))

@@ -52,7 +52,7 @@ func (p *Platform) Upload(_ context.Context, vod *dggarchivermodel.VOD, l *lua.L
 	)
 
 	slog.Debug("uploading thumbnail", slog.String("platform", platformName), slogVodGroup)
-	thumbnail, err := uploadThumbnail(vod.ThumbnailPath)
+	thumbnail, err := UploadThumbnail(vod.ThumbnailPath)
 	if err != nil {
 		slog.Warn("unable to upload thumbnail, skipping", slog.String("platform", platformName), slogVodGroup)
 		thumbnail = vod.Thumbnail
