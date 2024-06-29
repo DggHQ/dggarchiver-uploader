@@ -370,6 +370,8 @@ func (p *Platform) waitForConfirm(ctx context.Context, queryURL string) (publish
 	var r odyseeOutputResponse
 
 	for r.Result.TxID == "" {
+		time.Sleep(10 * time.Second)
+
 		req, err := http.NewRequestWithContext(ctx, "GET", queryURL, nil)
 		if err != nil {
 			return publish{}, err
