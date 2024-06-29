@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -118,13 +119,13 @@ func (p *Platform) Login(ctx context.Context) error {
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
-		return ErrStatusCode
-	}
-
 	b, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return errors.Join(ErrStatusCode, fmt.Errorf("%d %s", resp.StatusCode, string(b)))
 	}
 
 	var newAuthToken odyseeUserNew
@@ -156,7 +157,7 @@ func (p *Platform) Login(ctx context.Context) error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return ErrStatusCode
+		return errors.Join(ErrStatusCode, fmt.Errorf("%d %s", resp.StatusCode, string(b)))
 	}
 
 	p.authToken = newAuthToken.Data.AuthToken
