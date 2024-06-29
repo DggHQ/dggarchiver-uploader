@@ -139,34 +139,36 @@ func (p *Platform) Upload(ctx context.Context, vod *dggarchivermodel.VOD, l *lua
 		return ErrFileTooLarge
 	}
 
+	slog.Debug("checking login status", slog.String("platform", platformName), slogVodGroup)
 	loggedIn, err := p.IsLoggedIn(ctx)
 	if err != nil {
 		return err
 	}
 
 	if !loggedIn {
+		slog.Debug("trying to log in", slog.String("platform", platformName), slogVodGroup)
 		if err := p.Login(ctx); err != nil {
 			return err
 		}
 	}
 
-	slog.Debug("creating the upload client", slog.String("platform", platformName), slogVodGroup)
 	tusClient, err := p.getUpload(ctx)
 	if err != nil {
 		return err
 	}
+	slog.Debug("created the upload client", slog.String("platform", platformName), slog.String("url", tusClient.Url), slog.Any("headers", tusClient.Header), slogVodGroup)
 
 	tusUpload, err := tus.NewUploadFromFile(f)
 	if err != nil {
 		return err
 	}
+	slog.Debug("created upload", slog.String("platform", platformName), slogVodGroup)
 
 	tusUploader, err := tusClient.CreateUpload(tusUpload)
 	if err != nil {
 		return err
 	}
-
-	slog.Info("starting to upload", slog.String("platform", platformName), slogVodGroup)
+	slog.Debug("created uploader", slog.String("platform", platformName), slogVodGroup)
 
 	progessChan := make(chan tus.Upload)
 	tusUploader.NotifyUploadProgress(progessChan)
@@ -181,6 +183,7 @@ func (p *Platform) Upload(ctx context.Context, vod *dggarchivermodel.VOD, l *lua
 		}
 	}()
 
+	slog.Info("starting to upload", slog.String("platform", platformName), slogVodGroup)
 	err = tusUploader.Upload()
 	if err != nil {
 		return nil
@@ -205,16 +208,19 @@ func (p *Platform) Upload(ctx context.Context, vod *dggarchivermodel.VOD, l *lua
 	if err != nil {
 		return err
 	}
+	slog.Debug("created stream query", slog.String("platform", platformName), slogVodGroup)
 
 	pub, err := p.waitForConfirm(ctx, queryURL)
 	if err != nil {
 		return err
 	}
+	slog.Debug("stream confirmed", slog.String("platform", platformName), slogVodGroup)
 
 	err = p.publish(ctx, pub)
 	if err != nil {
 		return err
 	}
+	slog.Debug("stream published", slog.String("platform", platformName), slogVodGroup)
 
 	err = p.cfg.SQLite.DB.Create(&dggarchivermodel.UploadedVOD{
 		HostingPlatform:       platformName,
