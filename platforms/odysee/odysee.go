@@ -124,10 +124,6 @@ func (p *Platform) Login(ctx context.Context) error {
 		return err
 	}
 
-	if resp.StatusCode != http.StatusOK {
-		return errors.Join(ErrStatusCode, fmt.Errorf("%d %s", resp.StatusCode, string(b)))
-	}
-
 	var newAuthToken odyseeUserNew
 	err = json.Unmarshal(b, &newAuthToken)
 	if err != nil {
