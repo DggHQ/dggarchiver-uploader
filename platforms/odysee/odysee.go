@@ -13,6 +13,7 @@ import (
 	config "github.com/DggHQ/dggarchiver-config/uploader"
 	"github.com/DggHQ/dggarchiver-uploader/monitoring"
 	"github.com/DggHQ/dggarchiver-uploader/platforms/implementation"
+	"github.com/DggHQ/dggarchiver-uploader/platforms/odysee/token"
 )
 
 const (
@@ -52,22 +53,32 @@ type Platform struct {
 	client  http.Client
 	monitor *monitoring.Monitor
 
-	authToken string
+	authToken *token.Token
 }
 
 func New(cfg *config.Config, monitor *monitoring.Monitor) (implementation.Platform, error) {
-	return &Platform{
+	p := &Platform{
 		cfg:     cfg,
 		monitor: monitor,
 		client:  http.Client{},
+	}
 
-		authToken: "",
-	}, nil
+	t, err := token.New()
+	if err != nil {
+		return nil, err
+	}
+	if err := t.Load(); err != nil {
+		return nil, err
+	}
+
+	p.authToken = t
+
+	return p, nil
 }
 
 func (p *Platform) IsLoggedIn(ctx context.Context) (bool, error) {
 	val := url.Values{}
-	val.Set("auth_token", p.authToken)
+	val.Set("auth_token", p.authToken.Get())
 
 	req, err := http.NewRequestWithContext(ctx, "POST", mainAPIURLString+"/user/me", strings.NewReader(val.Encode()))
 	if err != nil {
@@ -165,7 +176,9 @@ func (p *Platform) Login(ctx context.Context) error {
 		return errors.Join(ErrStatusCode, fmt.Errorf("%d %s", resp.StatusCode, string(b)))
 	}
 
-	p.authToken = newAuthToken.Data.AuthToken
+	if err := p.authToken.Save(newAuthToken.Data.AuthToken); err != nil {
+		return err
+	}
 
 	return nil
 }

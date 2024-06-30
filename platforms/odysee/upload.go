@@ -220,7 +220,7 @@ func (p *Platform) Upload(ctx context.Context, vod *dggarchivermodel.VOD, l *lua
 	if err != nil {
 		return err
 	}
-	slog.Debug("stream published", slog.String("platform", platformName), slogVodGroup)
+	slog.Info("stream published", slog.String("platform", platformName), slogVodGroup)
 
 	err = p.cfg.SQLite.DB.Create(&dggarchivermodel.UploadedVOD{
 		HostingPlatform:       platformName,
@@ -250,7 +250,7 @@ func (p *Platform) getUpload(ctx context.Context) (*tus.Client, error) {
 		return nil, err
 	}
 
-	req.Header.Set("X-Lbry-Auth-Token", p.authToken)
+	req.Header.Set("X-Lbry-Auth-Token", p.authToken.Get())
 
 	resp, err := p.client.Do(req)
 	if err != nil {
@@ -336,7 +336,7 @@ func (p *Platform) createQuery(ctx context.Context, vod *dggarchivermodel.VOD, p
 		return "", err
 	}
 
-	req.Header.Set("X-Lbry-Auth-Token", p.authToken)
+	req.Header.Set("X-Lbry-Auth-Token", p.authToken.Get())
 
 	resp, err := p.client.Do(req)
 	if err != nil {
@@ -377,7 +377,7 @@ func (p *Platform) waitForConfirm(ctx context.Context, queryURL string) (publish
 			return publish{}, err
 		}
 
-		req.Header.Set("X-Lbry-Auth-Token", p.authToken)
+		req.Header.Set("X-Lbry-Auth-Token", p.authToken.Get())
 
 		resp, err := p.client.Do(req)
 		if err != nil {
@@ -418,7 +418,7 @@ func (p *Platform) waitForConfirm(ctx context.Context, queryURL string) (publish
 
 func (p *Platform) publish(ctx context.Context, pub publish) error {
 	val := url.Values{}
-	val.Set("auth_token", p.authToken)
+	val.Set("auth_token", p.authToken.Get())
 	val.Set("uri", pub.URI)
 	val.Set("claim_id", pub.ClaimID)
 	val.Set("outpoint", pub.Outpoint)
