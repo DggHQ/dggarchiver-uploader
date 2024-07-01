@@ -6,9 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
-	"reflect"
 	"regexp"
-	"strings"
 	"time"
 
 	config "github.com/DggHQ/dggarchiver-config/uploader"
@@ -28,21 +26,13 @@ type Platforms struct {
 	filtersBehaviour string
 }
 
-func New(cfg *config.Config, monitor *monitoring.Monitor) (*Platforms, error) {
+func New(cfg *config.Config, monitor *monitoring.Monitor, enabledPlatforms []string) (*Platforms, error) {
 	p := Platforms{
-		enabledPlatforms: []string{},
+		enabledPlatforms: enabledPlatforms,
 		monitor:          monitor,
 		cfg:              cfg,
 		filters:          []*regexp.Regexp{},
 		filtersBehaviour: cfg.Filters.Behaviour,
-	}
-
-	platformsValue := reflect.ValueOf(cfg.Platforms)
-	platformsFields := reflect.VisibleFields(reflect.TypeOf(cfg.Platforms))
-	for _, field := range platformsFields {
-		if platformsValue.FieldByName(field.Name).FieldByName("Enabled").Bool() {
-			p.enabledPlatforms = append(p.enabledPlatforms, strings.ToLower(field.Name))
-		}
 	}
 
 	for _, f := range cfg.Filters.List {
