@@ -2,37 +2,45 @@ package notifications
 
 import (
 	"bytes"
+	"strings"
 	"text/template"
 
 	dggarchivermodel "github.com/DggHQ/dggarchiver-model"
 )
 
-const (
-	receive string = `Platform: '{{ .Platform }}'
-		ID: '{{ .VID }}'
-		Title: '{{ .Title }}'
-		Duration: {{ .Duration }}
-		Start Time: '{{ .StartTime }}'
-	`
-	progress string = `Hosting: '{{ .HostingPlatform }}'
-		Platform: '{{ .Platform }}'
-		ID: '{{ .VID }}'
-		Title: '{{ .Title }}'
+var (
+	receive = strings.Join([]string{
+		"Platform: '{{ .Platform }}'",
+		"ID: '{{ .VID }}'",
+		"Title: '{{ .Title }}'",
+		"Duration: {{ .Duration }}",
+		"Start Time: '{{ .StartTime }}'",
+	}, "\n")
 
-		Progress: {{ .Progress }}
-	`
-	insert string = `Hosting: '{{ .HostingPlatform }}'
-		Platform: '{{ .Platform }}'
-		ID: '{{ .VID }}'
-		Title: '{{ .Title }}'
-		URL: '{{ .HostingURL }}'
-	`
-	filtered string = `Platform: '{{ .Platform }}'
-		ID: '{{ .VID }}'
-		Title: '{{ .Title }}'
+	progress = strings.Join([]string{
+		"Hosting: '{{ .HostingPlatform }}'",
+		"Platform: '{{ .Platform }}'",
+		"ID: '{{ .VID }}'",
+		"Title: '{{ .Title }}'",
+		"",
+		"Progress: {{ .Progress }}",
+	}, "\n")
 
-		Filter: '{{ .Filter }}'
-	`
+	insert = strings.Join([]string{
+		"Hosting: '{{ .HostingPlatform }}'",
+		"Platform: '{{ .Platform }}'",
+		"ID: '{{ .VID }}'",
+		"Title: '{{ .Title }}'",
+		"URL: '{{ .HostingURL }}'",
+	}, "\n")
+
+	filtered = strings.Join([]string{
+		"Platform: '{{ .Platform }}'",
+		"ID: '{{ .VID }}'",
+		"Title: '{{ .Title }}'",
+		"",
+		"Filter: '{{ .Filter }}'",
+	}, "\n")
 )
 
 var (
