@@ -113,7 +113,7 @@ func (p *Platform) Upload(ctx context.Context, vod *dggarchivermodel.VOD, l *lua
 
 	slogVodGroup := slog.Group("vod",
 		slog.String("platform", vod.Platform),
-		slog.String("id", vod.ID),
+		slog.String("id", vod.VID),
 	)
 
 	if vod.EndTime == "" {
@@ -293,8 +293,8 @@ func (p *Platform) createQuery(ctx context.Context, vod *dggarchivermodel.VOD, p
 	stream := odyseeStreamCreate{
 		RPC: &RPC{},
 		Params: odyseeStreamCreateParams{
-			Name:        fmt.Sprintf("%s-r-%s%d", vod.ID, vod.Platform, rand.Intn(1000)),
-			Title:       fmt.Sprintf("[%s:%s] %s", vod.Platform, vod.ID, vod.Title),
+			Name:        fmt.Sprintf("%s-r-%s%d", vod.VID, vod.Platform, rand.Intn(1000)),
+			Title:       fmt.Sprintf("[%s:%s] %s", vod.Platform, vod.VID, vod.Title),
 			Description: fmt.Sprintf("%s\n%s", vod.StartTime, vod.EndTime),
 			Locations:   []string{},
 			BID:         "0.0001",

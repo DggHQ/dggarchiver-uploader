@@ -48,7 +48,7 @@ func New(cfg *config.Config, monitor *monitoring.Monitor) (implementation.Platfo
 func (p *Platform) Upload(_ context.Context, vod *dggarchivermodel.VOD, l *lua.LState) error {
 	slogVodGroup := slog.Group("vod",
 		slog.String("platform", vod.Platform),
-		slog.String("id", vod.ID),
+		slog.String("id", vod.VID),
 	)
 
 	slog.Debug("uploading thumbnail", slog.String("platform", platformName), slogVodGroup)
@@ -74,8 +74,8 @@ func (p *Platform) Upload(_ context.Context, vod *dggarchivermodel.VOD, l *lua.L
 	}
 
 	params := VideoParams{
-		Name:         fmt.Sprintf("%s-r-%s%d", vod.ID, vod.Platform, rand.Intn(1000)),
-		Title:        fmt.Sprintf("[%s:%s] %s", vod.Platform, vod.ID, vod.Title),
+		Name:         fmt.Sprintf("%s-r-%s%d", vod.VID, vod.Platform, rand.Intn(1000)),
+		Title:        fmt.Sprintf("[%s:%s] %s", vod.Platform, vod.VID, vod.Title),
 		BID:          "0.0001",
 		FilePath:     vod.Path,
 		ValidateFile: false,
@@ -133,7 +133,7 @@ func (p *Platform) Upload(_ context.Context, vod *dggarchivermodel.VOD, l *lua.L
 		slog.String("platform", platformName),
 		slog.Group("vod",
 			slog.String("platform", vod.Platform),
-			slog.String("id", vod.ID),
+			slog.String("id", vod.VID),
 		),
 		slog.Int("sleep", 15),
 	)
@@ -154,7 +154,7 @@ func (p *Platform) Upload(_ context.Context, vod *dggarchivermodel.VOD, l *lua.L
 		uploadProgress = progressResult.Result.Items[0].ReflectorProgress
 		// 	Set Prometheus Gauge Value to the current upload progress value
 		p.monitor.ChangeCurrentProgress(float64(uploadProgress), prometheus.Labels{
-			"id":           vod.ID,
+			"id":           vod.VID,
 			"channel_name": p.cfg.Platforms.LBRY.ChannelName,
 			"vod_title":    vod.Title,
 		})

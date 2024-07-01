@@ -5,9 +5,10 @@ go 1.21
 toolchain go1.22.1
 
 require (
-	github.com/DggHQ/dggarchiver-config v0.0.0-20240629045406-ed217bf78818
-	github.com/DggHQ/dggarchiver-model v0.0.0-20240418115146-74b9572e914e
+	github.com/DggHQ/dggarchiver-config v0.0.0-20240701043820-faeaf50ae77d
+	github.com/DggHQ/dggarchiver-model v0.0.0-20240701043726-064087a74466
 	github.com/PuerkitoBio/goquery v1.9.1
+	github.com/eventials/go-tus v0.0.0-20220610120217-05d0564bb571
 	github.com/nats-io/nats.go v1.34.0
 	github.com/prometheus/client_golang v1.19.0
 	github.com/vadv/gopher-lua-libs v0.5.0
@@ -27,12 +28,10 @@ require (
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/cheggaaa/pb/v3 v3.1.5 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
-	github.com/eventials/go-tus v0.0.0-20220610120217-05d0564bb571 // indirect
 	github.com/fatih/color v1.16.0 // indirect
 	github.com/glebarez/go-sqlite v1.22.0 // indirect
 	github.com/glebarez/sqlite v1.11.0 // indirect
 	github.com/go-sql-driver/mysql v1.8.1 // indirect
-	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
@@ -45,11 +44,8 @@ require (
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-runewidth v0.0.15 // indirect
 	github.com/mattn/go-sqlite3 v1.14.22 // indirect
-	github.com/matttproud/golang_protobuf_extensions v1.0.4 // indirect
-	github.com/minio/highwayhash v1.0.2 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/montanaflynn/stats v0.7.1 // indirect
-	github.com/nats-io/jwt/v2 v2.3.0 // indirect
 	github.com/nats-io/nkeys v0.4.7 // indirect
 	github.com/nats-io/nuid v1.0.1 // indirect
 	github.com/ncruces/go-strftime v0.1.9 // indirect
@@ -67,7 +63,7 @@ require (
 	google.golang.org/protobuf v1.33.0 // indirect
 	gopkg.in/xmlpath.v2 v2.0.0-20150820204837-860cbeca3ebc // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
-	gorm.io/gorm v1.25.9 // indirect
+	gorm.io/gorm v1.25.10 // indirect
 	modernc.org/libc v1.49.0 // indirect
 	modernc.org/mathutil v1.6.0 // indirect
 	modernc.org/memory v1.7.2 // indirect

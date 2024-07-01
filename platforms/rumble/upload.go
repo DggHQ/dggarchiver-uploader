@@ -65,7 +65,7 @@ func (p *Platform) Upload(ctx context.Context, vod *dggarchivermodel.VOD, l *lua
 
 	slogVodGroup := slog.Group("vod",
 		slog.String("platform", vod.Platform),
-		slog.String("id", vod.ID),
+		slog.String("id", vod.VID),
 	)
 
 	if vod.EndTime == "" {
@@ -200,7 +200,7 @@ func (p *Platform) smallUpload(ctx context.Context, vod *dggarchivermodel.VOD, f
 		slog.Warn("unable to check duration",
 			slog.Group("vod",
 				slog.String("platform", vod.Platform),
-				slog.String("id", vod.ID),
+				slog.String("id", vod.VID),
 			),
 			slog.Any("err", err),
 		)
@@ -220,7 +220,7 @@ func (p *Platform) smallUpload(ctx context.Context, vod *dggarchivermodel.VOD, f
 	speed := ((fi.Size()) / (timeEnd.UnixMilli() - timeStart.UnixMilli())) * 100
 
 	info := uploadFormTemplate{
-		Title:          fmt.Sprintf("[%s:%s] %s", vod.Platform, vod.ID, vod.Title),
+		Title:          fmt.Sprintf("[%s:%s] %s", vod.Platform, vod.VID, vod.Title),
 		Description:    fmt.Sprintf("%s\n%s", vod.StartTime, vod.EndTime),
 		ServerFileName: fileName,
 		Tags:           "destiny,vod,yee wins,reupload,mirror",
@@ -270,7 +270,7 @@ func (p *Platform) bigUpload(ctx context.Context, vod *dggarchivermodel.VOD, f *
 		slog.Warn("unable to check duration",
 			slog.Group("vod",
 				slog.String("platform", vod.Platform),
-				slog.String("id", vod.ID),
+				slog.String("id", vod.VID),
 			),
 			slog.Any("err", err),
 		)
@@ -290,7 +290,7 @@ func (p *Platform) bigUpload(ctx context.Context, vod *dggarchivermodel.VOD, f *
 	speed := ((fi.Size()) / (timeEnd.UnixMilli() - timeStart.UnixMilli())) * 100
 
 	processedTitle := ""
-	for i, v := range strings.Fields(fmt.Sprintf("[%s:%s] %s", vod.Platform, vod.ID, vod.Title)) {
+	for i, v := range strings.Fields(fmt.Sprintf("[%s:%s] %s", vod.Platform, vod.VID, vod.Title)) {
 		var t string
 		if i == 0 {
 			t = v
