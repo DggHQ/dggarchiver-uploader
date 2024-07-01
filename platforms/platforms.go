@@ -14,11 +14,10 @@ import (
 	config "github.com/DggHQ/dggarchiver-config/uploader"
 	dggarchivermodel "github.com/DggHQ/dggarchiver-model"
 	"github.com/DggHQ/dggarchiver-uploader/monitoring"
+	"github.com/DggHQ/dggarchiver-uploader/notifications"
 	"github.com/DggHQ/dggarchiver-uploader/platforms/implementation"
-	"github.com/DggHQ/dggarchiver-uploader/util"
+	"github.com/containrrr/shoutrrr/pkg/types"
 	"github.com/nats-io/nats.go"
-	luaLibs "github.com/vadv/gopher-lua-libs"
-	lua "github.com/yuin/gopher-lua"
 )
 
 type Platforms struct {
@@ -58,15 +57,6 @@ func New(cfg *config.Config, monitor *monitoring.Monitor) (*Platforms, error) {
 }
 
 func (p *Platforms) Start() {
-	l := lua.NewState()
-	if p.cfg.Plugins.Enabled {
-		luaLibs.Preload(l)
-		if err := l.DoFile(p.cfg.Plugins.PathToPlugin); err != nil {
-			slog.Error("unable to load lua script", slog.Any("err", err))
-			os.Exit(1)
-		}
-	}
-
 	if _, err := p.cfg.NATS.NatsConnection.Subscribe(fmt.Sprintf("%s.upload", p.cfg.NATS.Topic), func(msg *nats.Msg) {
 		vod := &dggarchivermodel.VOD{}
 		err := json.Unmarshal(msg.Data, vod)
@@ -79,8 +69,15 @@ func (p *Platforms) Start() {
 		for _, f := range p.filters {
 			if f.MatchString(vod.Title) {
 				slog.Info("vod filtered", slog.Any("vod", vod))
-				if p.cfg.Plugins.Enabled {
-					util.LuaCallFilteredFunction(l, vod, f.String())
+				if p.cfg.Notifications.Condition("filter") {
+					errs := p.cfg.Notifications.Sender.Send(notifications.GetFilteredMessage(vod, f.String()), &types.Params{
+						"title": "Filtered VOD",
+					})
+					for _, err := range errs {
+						if err != nil {
+							slog.Warn("unable to send notification", slog.Any("vod", vod), slog.Any("err", err))
+						}
+					}
 				}
 				switch p.filtersBehaviour {
 				case "private":
@@ -96,8 +93,15 @@ func (p *Platforms) Start() {
 		}
 
 		slog.Info("received a vod", slog.Any("vod", vod))
-		if p.cfg.Plugins.Enabled {
-			util.LuaCallReceiveFunction(l, vod)
+		if p.cfg.Notifications.Condition("receive") {
+			errs := p.cfg.Notifications.Sender.Send(notifications.GetReceiveMessage(vod), &types.Params{
+				"title": "Received VOD",
+			})
+			for _, err := range errs {
+				if err != nil {
+					slog.Warn("unable to send notification", slog.Any("vod", vod), slog.Any("err", err))
+				}
+			}
 		}
 
 		ctx := context.Background()
@@ -108,7 +112,7 @@ func (p *Platforms) Start() {
 				slog.Error("unable to create a platform", slog.Any("err", err))
 				continue
 			}
-			if err := imp.Upload(ctx, vod, l); err != nil {
+			if err := imp.Upload(ctx, vod); err != nil {
 				slog.Error("upload error", slog.Any("err", err))
 				continue
 			}

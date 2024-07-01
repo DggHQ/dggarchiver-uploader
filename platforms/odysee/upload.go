@@ -17,10 +17,11 @@ import (
 	"time"
 
 	dggarchivermodel "github.com/DggHQ/dggarchiver-model"
+	"github.com/DggHQ/dggarchiver-uploader/notifications"
 	"github.com/DggHQ/dggarchiver-uploader/platforms/lbry"
 	"github.com/DggHQ/dggarchiver-uploader/util"
+	"github.com/containrrr/shoutrrr/pkg/types"
 	"github.com/eventials/go-tus"
-	lua "github.com/yuin/gopher-lua"
 )
 
 const (
@@ -108,7 +109,7 @@ type odyseeUploadTokenResponse struct {
 	} `json:"payload"`
 }
 
-func (p *Platform) Upload(ctx context.Context, vod *dggarchivermodel.VOD, l *lua.LState) error {
+func (p *Platform) Upload(ctx context.Context, vod *dggarchivermodel.VOD) error {
 	var err error
 
 	slogVodGroup := slog.Group("vod",
@@ -174,12 +175,25 @@ func (p *Platform) Upload(ctx context.Context, vod *dggarchivermodel.VOD, l *lua
 	tusUploader.NotifyUploadProgress(progessChan)
 	go func() {
 		for u := range progessChan {
+			progress := u.Progress()
+
 			slog.Info("progress",
 				slog.Int64("offset", u.Offset()),
 				slog.Int64("size", u.Size()),
-				slog.Int64("percent", u.Progress()),
+				slog.Int64("percent", progress),
 				slog.String("file", fi.Name()),
 			)
+
+			if p.cfg.Notifications.Condition("progress") {
+				errs := p.cfg.Notifications.Sender.Send(notifications.GetProgressMessage(vod, platformName, float64(progress)), &types.Params{
+					"title": "Uploading VOD...",
+				})
+				for _, err := range errs {
+					if err != nil {
+						slog.Warn("unable to send notification", slog.Any("vod", vod), slog.Any("err", err))
+					}
+				}
+			}
 		}
 	}()
 
@@ -222,23 +236,28 @@ func (p *Platform) Upload(ctx context.Context, vod *dggarchivermodel.VOD, l *lua
 	}
 	slog.Info("stream published", slog.String("platform", platformName), slogVodGroup)
 
-	err = p.cfg.SQLite.DB.Create(&dggarchivermodel.UploadedVOD{
+	uvod := &dggarchivermodel.UploadedVOD{
 		HostingPlatform:       platformName,
 		VOD:                   *vod,
 		HostingChannel:        pub.Output.Channel.Name,
 		HostingName:           pub.Output.Name,
 		HostingNormalizedName: pub.Output.NormalizedName,
 		HostingURL:            pub.Output.PermanentURL,
-	}).Error
+	}
+	err = p.cfg.SQLite.DB.Create(uvod).Error
 	if err != nil {
 		return err
 	}
-	if p.cfg.Plugins.Enabled {
-		util.LuaCallInsertFunction(l, vod, err == nil)
-	}
 
-	if p.cfg.Plugins.Enabled {
-		util.LuaCallFinishFunction(l, vod, true)
+	if p.cfg.Notifications.Condition("insert") {
+		errs := p.cfg.Notifications.Sender.Send(notifications.GetInsertMessage(uvod), &types.Params{
+			"title": fmt.Sprintf("Uploaded VOD to %s", platformName),
+		})
+		for _, err := range errs {
+			if err != nil {
+				slog.Warn("unable to send notification", slog.Any("vod", vod), slog.Any("err", err))
+			}
+		}
 	}
 
 	return nil

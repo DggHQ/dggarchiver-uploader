@@ -22,9 +22,10 @@ import (
 	"time"
 
 	dggarchivermodel "github.com/DggHQ/dggarchiver-model"
+	"github.com/DggHQ/dggarchiver-uploader/notifications"
 	"github.com/DggHQ/dggarchiver-uploader/util"
 	"github.com/PuerkitoBio/goquery"
-	lua "github.com/yuin/gopher-lua"
+	"github.com/containrrr/shoutrrr/pkg/types"
 )
 
 var (
@@ -60,7 +61,7 @@ type fileMetadata struct {
 	TimeEnd   int64  `json:"time_end"`
 }
 
-func (p *Platform) Upload(ctx context.Context, vod *dggarchivermodel.VOD, l *lua.LState) error {
+func (p *Platform) Upload(ctx context.Context, vod *dggarchivermodel.VOD) error {
 	var err error
 
 	slogVodGroup := slog.Group("vod",
@@ -121,21 +122,26 @@ func (p *Platform) Upload(ctx context.Context, vod *dggarchivermodel.VOD, l *lua
 	}
 
 	slog.Info("VOD uploaded", slog.String("platform", platformName), slogVodGroup)
-	err = p.cfg.SQLite.DB.Create(&dggarchivermodel.UploadedVOD{
+	uvod := &dggarchivermodel.UploadedVOD{
 		HostingPlatform: platformName,
 		VOD:             *vod,
 		HostingChannel:  p.cfg.Platforms.Rumble.Login,
 		HostingURL:      urls,
-	}).Error
+	}
+	err = p.cfg.SQLite.DB.Create(uvod).Error
 	if err != nil {
 		return err
 	}
-	if p.cfg.Plugins.Enabled {
-		util.LuaCallInsertFunction(l, vod, err == nil)
-	}
 
-	if p.cfg.Plugins.Enabled {
-		util.LuaCallFinishFunction(l, vod, true)
+	if p.cfg.Notifications.Condition("insert") {
+		errs := p.cfg.Notifications.Sender.Send(notifications.GetInsertMessage(uvod), &types.Params{
+			"title": fmt.Sprintf("Uploaded VOD to %s", platformName),
+		})
+		for _, err := range errs {
+			if err != nil {
+				slog.Warn("unable to send notification", slog.Any("vod", vod), slog.Any("err", err))
+			}
+		}
 	}
 
 	return nil
@@ -258,7 +264,7 @@ func (p *Platform) bigUpload(ctx context.Context, vod *dggarchivermodel.VOD, f *
 	timeStart := time.Now()
 
 	initialFileName := generatePutName(fi.Name(), timeStart)
-	serverFileName, chunkQty, err := p.putUpload(ctx, f, fi, u, initialFileName, chunkSize)
+	serverFileName, chunkQty, err := p.putUpload(ctx, vod, f, fi, u, initialFileName, chunkSize)
 	if err != nil {
 		return "", err
 	}
@@ -338,7 +344,7 @@ func (p *Platform) bigUpload(ctx context.Context, vod *dggarchivermodel.VOD, f *
 	return res, nil
 }
 
-func (p *Platform) putUpload(ctx context.Context, f *os.File, fi os.FileInfo, u *url.URL, fileName string, chunkSize int64) (string, int, error) {
+func (p *Platform) putUpload(ctx context.Context, vod *dggarchivermodel.VOD, f *os.File, fi os.FileInfo, u *url.URL, fileName string, chunkSize int64) (string, int, error) {
 	chunkQty := int(math.Ceil(float64(fi.Size()) / float64(chunkSize)))
 
 	chunkNames := []string{}
@@ -389,6 +395,17 @@ func (p *Platform) putUpload(ctx context.Context, f *os.File, fi os.FileInfo, u 
 			slog.Float64("percent", percent),
 			slog.String("file", fileName),
 		)
+
+		if p.cfg.Notifications.Condition("progress") {
+			errs := p.cfg.Notifications.Sender.Send(notifications.GetProgressMessage(vod, platformName, percent), &types.Params{
+				"title": "Uploading VOD...",
+			})
+			for _, err := range errs {
+				if err != nil {
+					slog.Warn("unable to send notification", slog.Any("vod", vod), slog.Any("err", err))
+				}
+			}
+		}
 	}
 
 	uMerge := *u
