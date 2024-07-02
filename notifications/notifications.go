@@ -7,6 +7,7 @@ import (
 	"time"
 
 	dggarchivermodel "github.com/DggHQ/dggarchiver-model"
+	"github.com/DggHQ/dggarchiver-uploader/util"
 )
 
 var (
@@ -16,6 +17,7 @@ var (
 		"Title: {{ .Title }}",
 		"Duration: {{ duration .Duration }}",
 		"Start Time: {{ .StartTime }}",
+		"End Time: {{ endTime .StartTime .Duration }}",
 	}, "\n")
 
 	progress = strings.Join([]string{
@@ -45,6 +47,13 @@ var (
 		"duration": func(dur int) string {
 			d := time.Duration(dur * int(time.Second))
 			return d.String()
+		},
+		"endTime": func(startTime string, dur int) string {
+			endTime, err := util.CalculateEndTime(startTime, dur)
+			if err != nil {
+				return ""
+			}
+			return endTime
 		},
 	}
 )
