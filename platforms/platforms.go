@@ -22,8 +22,7 @@ type Platforms struct {
 	enabledPlatforms []string
 	monitor          *monitoring.Monitor
 	cfg              *config.Config
-	filters          []*regexp.Regexp
-	filtersBehaviour string
+	filters          map[*regexp.Regexp]string
 }
 
 func New(cfg *config.Config, monitor *monitoring.Monitor, enabledPlatforms []string) (*Platforms, error) {
@@ -31,16 +30,15 @@ func New(cfg *config.Config, monitor *monitoring.Monitor, enabledPlatforms []str
 		enabledPlatforms: enabledPlatforms,
 		monitor:          monitor,
 		cfg:              cfg,
-		filters:          []*regexp.Regexp{},
-		filtersBehaviour: cfg.Filters.Behaviour,
+		filters:          make(map[*regexp.Regexp]string),
 	}
 
-	for _, f := range cfg.Filters.List {
+	for f, b := range cfg.Filters {
 		exp, err := regexp.Compile(f)
 		if err != nil {
 			return nil, err
 		}
-		p.filters = append(p.filters, exp)
+		p.filters[exp] = b
 	}
 
 	return &p, nil
@@ -56,7 +54,7 @@ func (p *Platforms) Start() {
 		}
 
 	filterLoop:
-		for _, f := range p.filters {
+		for f, b := range p.filters {
 			if f.MatchString(vod.Title) {
 				slog.Info("vod filtered", slog.Any("vod", vod))
 				if p.cfg.Notifications.Condition("filter") {
@@ -69,7 +67,7 @@ func (p *Platforms) Start() {
 						}
 					}
 				}
-				switch p.filtersBehaviour {
+				switch b {
 				case "private":
 					vod.Visibility = 2
 					break filterLoop
