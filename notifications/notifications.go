@@ -4,50 +4,56 @@ import (
 	"bytes"
 	"strings"
 	"text/template"
+	"time"
 
 	dggarchivermodel "github.com/DggHQ/dggarchiver-model"
 )
 
 var (
 	receive = strings.Join([]string{
-		"Platform: '{{ .Platform }}'",
-		"ID: '{{ .VID }}'",
-		"Title: '{{ .Title }}'",
-		"Duration: {{ .Duration }}",
-		"Start Time: '{{ .StartTime }}'",
+		"Platform: {{ .Platform }}",
+		"ID: {{ .VID }}",
+		"Title: {{ .Title }}",
+		"Duration: {{ duration .Duration }}",
+		"Start Time: {{ .StartTime }}",
 	}, "\n")
 
 	progress = strings.Join([]string{
-		"Hosting: '{{ .HostingPlatform }}'",
-		"Platform: '{{ .Platform }}'",
-		"ID: '{{ .VID }}'",
-		"Title: '{{ .Title }}'",
-		"",
-		"Progress: {{ .Progress }}",
+		"Hosting: {{ .HostingPlatform }}",
+		"Platform: {{ .Platform }}",
+		"ID: {{ .VID }}",
+		"Title: {{ .Title }}",
+		"Progress: {{ .Progress }}%",
 	}, "\n")
 
 	insert = strings.Join([]string{
-		"Hosting: '{{ .HostingPlatform }}'",
-		"Platform: '{{ .Platform }}'",
-		"ID: '{{ .VID }}'",
-		"Title: '{{ .Title }}'",
-		"URL: '{{ .HostingURL }}'",
+		"Hosting: {{ .HostingPlatform }}",
+		"Platform: {{ .Platform }}",
+		"ID: {{ .VID }}",
+		"Title: {{ .Title }}",
+		"URL: {{ .HostingURL }}",
 	}, "\n")
 
 	filtered = strings.Join([]string{
-		"Platform: '{{ .Platform }}'",
-		"ID: '{{ .VID }}'",
-		"Title: '{{ .Title }}'",
-		"",
-		"Filter: '{{ .Filter }}'",
+		"Platform: {{ .Platform }}",
+		"ID: {{ .VID }}",
+		"Title: {{ .Title }}",
+		"Filter: {{ .Filter }}",
 	}, "\n")
+
+	funcMap = template.FuncMap{
+		"duration": func(dur int) string {
+			d := time.Duration(dur * int(time.Second))
+			return d.String()
+		},
+	}
 )
 
 var (
-	receiveTemplate, _  = template.New("receive").Parse(receive)
-	progressTemplate, _ = template.New("progress").Parse(progress)
-	insertTemplate, _   = template.New("insert").Parse(insert)
-	filteredTemplate, _ = template.New("filtered").Parse(filtered)
+	receiveTemplate, _  = template.New("receive").Funcs(funcMap).Parse(receive)
+	progressTemplate, _ = template.New("progress").Funcs(funcMap).Parse(progress)
+	insertTemplate, _   = template.New("insert").Funcs(funcMap).Parse(insert)
+	filteredTemplate, _ = template.New("filtered").Funcs(funcMap).Parse(filtered)
 )
 
 func GetReceiveMessage(vod *dggarchivermodel.VOD) string {
