@@ -107,6 +107,14 @@ func (p *Platforms) Start() {
 
 			time.Sleep(time.Second * 1)
 		}
+
+		if err = p.cfg.NATS.NatsConnection.Publish(fmt.Sprintf("%s.cleanup", p.cfg.NATS.Topic), msg.Data); err != nil {
+			slog.Error("unable to publish message",
+				slog.String("id", vod.VID),
+				slog.Any("err", err),
+			)
+			return
+		}
 	}); err != nil {
 		slog.Error("unable to subscribe to NATS topic", slog.Any("err", err))
 		os.Exit(1)
