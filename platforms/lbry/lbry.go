@@ -84,13 +84,7 @@ func (p *Platform) Upload(_ context.Context, vod *dggarchivermodel.VOD) error {
 		Author:       p.cfg.Platforms.LBRY.Author,
 		Description:  fmt.Sprintf("%s\n%s", vod.StartTime, vod.EndTime),
 		ThumbnailURL: thumbnail,
-		Tags: []string{
-			"destiny",
-			"vod",
-			"yee wins",
-			"reupload",
-			"mirror",
-		},
+		Tags:         vod.Tags,
 		Languages: []string{
 			"en",
 		},

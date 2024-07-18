@@ -326,14 +326,8 @@ func (p *Platform) createQuery(ctx context.Context, vod *dggarchivermodel.VOD, p
 			Preview:      false,
 			ChannelID:    p.cfg.Platforms.Odysee.ChannelID,
 			License:      "None",
-			Tags: []string{
-				"destiny",
-				"vod",
-				"yee wins",
-				"reupload",
-				"mirror",
-			},
-			FilePath: path,
+			Tags:         vod.Tags,
+			FilePath:     path,
 		},
 	}
 
