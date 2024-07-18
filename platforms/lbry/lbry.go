@@ -14,10 +14,11 @@ import (
 	config "github.com/DggHQ/dggarchiver-config/uploader"
 	dggarchivermodel "github.com/DggHQ/dggarchiver-model"
 	"github.com/DggHQ/dggarchiver-uploader/monitoring"
+	"github.com/DggHQ/dggarchiver-uploader/notifications"
 	"github.com/DggHQ/dggarchiver-uploader/platforms/implementation"
 	"github.com/DggHQ/dggarchiver-uploader/util"
+	"github.com/containrrr/shoutrrr/pkg/types"
 	"github.com/prometheus/client_golang/prometheus"
-	lua "github.com/yuin/gopher-lua"
 )
 
 const (
@@ -45,14 +46,14 @@ func New(cfg *config.Config, monitor *monitoring.Monitor) (implementation.Platfo
 	}, nil
 }
 
-func (p *Platform) Upload(_ context.Context, vod *dggarchivermodel.VOD, l *lua.LState) error {
+func (p *Platform) Upload(_ context.Context, vod *dggarchivermodel.VOD) error {
 	slogVodGroup := slog.Group("vod",
 		slog.String("platform", vod.Platform),
-		slog.String("id", vod.ID),
+		slog.String("id", vod.VID),
 	)
 
 	slog.Debug("uploading thumbnail", slog.String("platform", platformName), slogVodGroup)
-	thumbnail, err := uploadThumbnail(vod.ThumbnailPath)
+	thumbnail, err := UploadThumbnail(vod.ThumbnailPath)
 	if err != nil {
 		slog.Warn("unable to upload thumbnail, skipping", slog.String("platform", platformName), slogVodGroup)
 		thumbnail = vod.Thumbnail
@@ -74,8 +75,8 @@ func (p *Platform) Upload(_ context.Context, vod *dggarchivermodel.VOD, l *lua.L
 	}
 
 	params := VideoParams{
-		Name:         fmt.Sprintf("%s-r-%s%d", vod.ID, vod.Platform, rand.Intn(1000)),
-		Title:        fmt.Sprintf("[%s:%s] %s", vod.Platform, vod.ID, vod.Title),
+		Name:         fmt.Sprintf("%s-r-%s%d", vod.VID, vod.Platform, rand.Intn(1000)),
+		Title:        fmt.Sprintf("[%s:%s] %s", vod.Platform, vod.VID, vod.Title),
 		BID:          "0.0001",
 		FilePath:     vod.Path,
 		ValidateFile: false,
@@ -133,7 +134,7 @@ func (p *Platform) Upload(_ context.Context, vod *dggarchivermodel.VOD, l *lua.L
 		slog.String("platform", platformName),
 		slog.Group("vod",
 			slog.String("platform", vod.Platform),
-			slog.String("id", vod.ID),
+			slog.String("id", vod.VID),
 		),
 		slog.Int("sleep", 15),
 	)
@@ -154,7 +155,7 @@ func (p *Platform) Upload(_ context.Context, vod *dggarchivermodel.VOD, l *lua.L
 		uploadProgress = progressResult.Result.Items[0].ReflectorProgress
 		// 	Set Prometheus Gauge Value to the current upload progress value
 		p.monitor.ChangeCurrentProgress(float64(uploadProgress), prometheus.Labels{
-			"id":           vod.ID,
+			"id":           vod.VID,
 			"channel_name": p.cfg.Platforms.LBRY.ChannelName,
 			"vod_title":    vod.Title,
 		})
@@ -168,8 +169,15 @@ func (p *Platform) Upload(_ context.Context, vod *dggarchivermodel.VOD, l *lua.L
 			slog.String("claim", claim),
 			slog.Int("progress", uploadProgress),
 		)
-		if p.cfg.Plugins.Enabled {
-			util.LuaCallProgressFunction(l, uploadProgress)
+		if p.cfg.Notifications.Condition("progress") {
+			errs := p.cfg.Notifications.Sender.Send(notifications.GetProgressMessage(vod, platformName, float64(uploadProgress)), &types.Params{
+				"title": "Uploading VOD...",
+			})
+			for _, err := range errs {
+				if err != nil {
+					slog.Warn("unable to send notification", slog.Any("vod", vod), slog.Any("err", err))
+				}
+			}
 		}
 		time.Sleep(15 * time.Second)
 	}
@@ -217,7 +225,7 @@ func (p *Platform) Upload(_ context.Context, vod *dggarchivermodel.VOD, l *lua.L
 		}
 		addInfoBytes, _ := json.Marshal(addInfo)
 
-		err = p.cfg.SQLite.DB.Create(&dggarchivermodel.UploadedVOD{
+		uvod := &dggarchivermodel.UploadedVOD{
 			HostingPlatform:       platformName,
 			VOD:                   *vod,
 			HostingAdditionalInfo: addInfoBytes,
@@ -225,21 +233,27 @@ func (p *Platform) Upload(_ context.Context, vod *dggarchivermodel.VOD, l *lua.L
 			HostingName:           result.Result.Outputs[0].Name,
 			HostingNormalizedName: result.Result.Outputs[0].NormalizedName,
 			HostingURL:            result.Result.Outputs[0].PermanentURL,
-		}).Error
+		}
+		err = p.cfg.SQLite.DB.Create(uvod).Error
 		if err != nil {
 			return err
 		}
-		if p.cfg.Plugins.Enabled {
-			util.LuaCallInsertFunction(l, vod, err == nil)
+
+		if p.cfg.Notifications.Condition("insert") {
+			errs := p.cfg.Notifications.Sender.Send(notifications.GetInsertMessage(uvod), &types.Params{
+				"title": fmt.Sprintf("Uploaded VOD to %s", platformName),
+			})
+			for _, err := range errs {
+				if err != nil {
+					slog.Warn("unable to send notification", slog.Any("vod", vod), slog.Any("err", err))
+				}
+			}
 		}
 	} else {
 		slog.Error("VOD upload failed", slog.String("platform", platformName), slogVodGroup)
 		return nil
 	}
 
-	if p.cfg.Plugins.Enabled {
-		util.LuaCallFinishFunction(l, vod, uploadResult)
-	}
 	return nil
 }
 

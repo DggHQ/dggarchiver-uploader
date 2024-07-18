@@ -6,67 +6,45 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
-	"reflect"
 	"regexp"
-	"strings"
 	"time"
 
 	config "github.com/DggHQ/dggarchiver-config/uploader"
 	dggarchivermodel "github.com/DggHQ/dggarchiver-model"
 	"github.com/DggHQ/dggarchiver-uploader/monitoring"
+	"github.com/DggHQ/dggarchiver-uploader/notifications"
 	"github.com/DggHQ/dggarchiver-uploader/platforms/implementation"
-	"github.com/DggHQ/dggarchiver-uploader/util"
+	"github.com/containrrr/shoutrrr/pkg/types"
 	"github.com/nats-io/nats.go"
-	luaLibs "github.com/vadv/gopher-lua-libs"
-	lua "github.com/yuin/gopher-lua"
 )
 
 type Platforms struct {
 	enabledPlatforms []string
 	monitor          *monitoring.Monitor
 	cfg              *config.Config
-	filters          []*regexp.Regexp
-	filtersBehaviour string
+	filters          map[*regexp.Regexp]string
 }
 
-func New(cfg *config.Config, monitor *monitoring.Monitor) (*Platforms, error) {
+func New(cfg *config.Config, monitor *monitoring.Monitor, enabledPlatforms []string) (*Platforms, error) {
 	p := Platforms{
-		enabledPlatforms: []string{},
+		enabledPlatforms: enabledPlatforms,
 		monitor:          monitor,
 		cfg:              cfg,
-		filters:          []*regexp.Regexp{},
-		filtersBehaviour: cfg.Filters.Behaviour,
+		filters:          make(map[*regexp.Regexp]string),
 	}
 
-	platformsValue := reflect.ValueOf(cfg.Platforms)
-	platformsFields := reflect.VisibleFields(reflect.TypeOf(cfg.Platforms))
-	for _, field := range platformsFields {
-		if platformsValue.FieldByName(field.Name).FieldByName("Enabled").Bool() {
-			p.enabledPlatforms = append(p.enabledPlatforms, strings.ToLower(field.Name))
-		}
-	}
-
-	for _, f := range cfg.Filters.List {
+	for f, b := range cfg.Filters {
 		exp, err := regexp.Compile(f)
 		if err != nil {
 			return nil, err
 		}
-		p.filters = append(p.filters, exp)
+		p.filters[exp] = b
 	}
 
 	return &p, nil
 }
 
 func (p *Platforms) Start() {
-	l := lua.NewState()
-	if p.cfg.Plugins.Enabled {
-		luaLibs.Preload(l)
-		if err := l.DoFile(p.cfg.Plugins.PathToPlugin); err != nil {
-			slog.Error("unable to load lua script", slog.Any("err", err))
-			os.Exit(1)
-		}
-	}
-
 	if _, err := p.cfg.NATS.NatsConnection.Subscribe(fmt.Sprintf("%s.upload", p.cfg.NATS.Topic), func(msg *nats.Msg) {
 		vod := &dggarchivermodel.VOD{}
 		err := json.Unmarshal(msg.Data, vod)
@@ -76,13 +54,20 @@ func (p *Platforms) Start() {
 		}
 
 	filterLoop:
-		for _, f := range p.filters {
+		for f, b := range p.filters {
 			if f.MatchString(vod.Title) {
 				slog.Info("vod filtered", slog.Any("vod", vod))
-				if p.cfg.Plugins.Enabled {
-					util.LuaCallFilteredFunction(l, vod, f.String())
+				if p.cfg.Notifications.Condition("filter") {
+					errs := p.cfg.Notifications.Sender.Send(notifications.GetFilteredMessage(vod, f.String()), &types.Params{
+						"title": "Filtered VOD",
+					})
+					for _, err := range errs {
+						if err != nil {
+							slog.Warn("unable to send notification", slog.Any("vod", vod), slog.Any("err", err))
+						}
+					}
 				}
-				switch p.filtersBehaviour {
+				switch b {
 				case "private":
 					vod.Visibility = 2
 					break filterLoop
@@ -96,8 +81,15 @@ func (p *Platforms) Start() {
 		}
 
 		slog.Info("received a vod", slog.Any("vod", vod))
-		if p.cfg.Plugins.Enabled {
-			util.LuaCallReceiveFunction(l, vod)
+		if p.cfg.Notifications.Condition("receive") {
+			errs := p.cfg.Notifications.Sender.Send(notifications.GetReceiveMessage(vod), &types.Params{
+				"title": "Received VOD",
+			})
+			for _, err := range errs {
+				if err != nil {
+					slog.Warn("unable to send notification", slog.Any("vod", vod), slog.Any("err", err))
+				}
+			}
 		}
 
 		ctx := context.Background()
@@ -108,7 +100,7 @@ func (p *Platforms) Start() {
 				slog.Error("unable to create a platform", slog.Any("err", err))
 				continue
 			}
-			if err := imp.Upload(ctx, vod, l); err != nil {
+			if err := imp.Upload(ctx, vod); err != nil {
 				slog.Error("upload error", slog.Any("err", err))
 				continue
 			}
