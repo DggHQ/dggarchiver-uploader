@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"os"
 	"regexp"
+	"slices"
 	"time"
 
 	config "github.com/DggHQ/dggarchiver-config/uploader"
@@ -17,6 +18,11 @@ import (
 	"github.com/containrrr/shoutrrr/pkg/types"
 	"github.com/nats-io/nats.go"
 )
+
+type ReceivedVOD struct {
+	*dggarchivermodel.VOD
+	HostingPlatforms []string `json:"hosting_platforms"`
+}
 
 type Platforms struct {
 	enabledPlatforms []string
@@ -46,12 +52,15 @@ func New(cfg *config.Config, monitor *monitoring.Monitor, enabledPlatforms []str
 
 func (p *Platforms) Start() {
 	if _, err := p.cfg.NATS.NatsConnection.Subscribe(fmt.Sprintf("%s.upload", p.cfg.NATS.Topic), func(msg *nats.Msg) {
-		vod := &dggarchivermodel.VOD{}
-		err := json.Unmarshal(msg.Data, vod)
+		rvod := ReceivedVOD{
+			HostingPlatforms: []string{},
+		}
+		err := json.Unmarshal(msg.Data, &rvod)
 		if err != nil {
 			slog.Error("unable to unmarshal VOD", slog.Any("err", err))
 			return
 		}
+		vod := rvod.VOD
 
 	filterLoop:
 		for f, b := range p.filters {
@@ -97,6 +106,10 @@ func (p *Platforms) Start() {
 
 		if vod.Visibility != -1 {
 			for _, v := range p.enabledPlatforms {
+				if rvod.HostingPlatforms != nil && !slices.Contains(rvod.HostingPlatforms, v) {
+					slog.Debug("skipping platform", slog.String("platform", v))
+					continue
+				}
 				imp, err := implementation.Map[v](p.cfg, p.monitor)
 				if err != nil {
 					slog.Error("unable to create a platform", slog.Any("err", err))
