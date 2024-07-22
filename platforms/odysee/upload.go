@@ -32,6 +32,7 @@ var (
 	ErrFileTooLarge              = errors.New("file too large")
 	ErrUnableToCreateUploadToken = errors.New("unable to create upload token")
 	ErrUnableToCreateStream      = errors.New("unable to create stream")
+	ErrUnableToConfirmStream     = errors.New("unable to confirm stream")
 )
 
 type publishResponse struct {
@@ -66,10 +67,17 @@ type odyseeOutputResponse struct {
 	} `json:"result"`
 }
 
+type RPCError struct {
+	Code    int             `json:"code"`
+	Data    json.RawMessage `json:"data"`
+	Message string          `json:"string"`
+}
+
 type RPC struct {
-	JSONRPC string `json:"jsonrpc"`
-	Method  string `json:"method"`
-	ID      int64  `json:"id"`
+	JSONRPC string    `json:"jsonrpc"`
+	Method  string    `json:"method"`
+	ID      int64     `json:"id"`
+	Error   *RPCError `json:"error,omitempty"`
 }
 
 type odyseeStreamCreateParams struct {
@@ -417,7 +425,10 @@ func (p *Platform) waitForConfirm(ctx context.Context, queryURL string) (publish
 			return publish{}, err
 		}
 
-		slog.Debug("output response", "url", queryURL, "data", r)
+		if r.RPC.Error != nil && r.RPC.Error.Message != "" {
+			slog.Error("got an rpc error", "err", r.RPC.Error.Message, "url", queryURL, "data", r)
+			return publish{}, errors.Join(ErrUnableToConfirmStream, errors.New(r.RPC.Error.Message))
+		}
 	}
 
 	o := slices.IndexFunc(r.Result.Outputs, func(out output) bool {
