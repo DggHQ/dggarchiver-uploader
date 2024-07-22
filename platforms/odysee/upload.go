@@ -385,7 +385,6 @@ func (p *Platform) waitForConfirm(ctx context.Context, queryURL string) (publish
 	for r.Result.TxID == "" {
 		time.Sleep(10 * time.Second)
 
-		slog.Debug("checking confirmation", "url", queryURL)
 		req, err := http.NewRequestWithContext(ctx, "GET", queryURL, nil)
 		if err != nil {
 			return publish{}, err
@@ -417,6 +416,8 @@ func (p *Platform) waitForConfirm(ctx context.Context, queryURL string) (publish
 		if err != nil {
 			return publish{}, err
 		}
+
+		slog.Debug("output response", "url", queryURL, "data", r)
 	}
 
 	o := slices.IndexFunc(r.Result.Outputs, func(out output) bool {
