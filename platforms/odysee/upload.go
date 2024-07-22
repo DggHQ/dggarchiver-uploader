@@ -200,7 +200,7 @@ func (p *Platform) Upload(ctx context.Context, vod *dggarchivermodel.VOD) error 
 	slog.Info("starting to upload", slog.String("platform", platformName), slogVodGroup)
 	err = tusUploader.Upload()
 	if err != nil {
-		return nil
+		return err
 	}
 
 	slog.Debug("uploading thumbnail", slog.String("platform", platformName), slogVodGroup)
