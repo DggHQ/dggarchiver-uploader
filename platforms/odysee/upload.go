@@ -385,6 +385,7 @@ func (p *Platform) waitForConfirm(ctx context.Context, queryURL string) (publish
 	for r.Result.TxID == "" {
 		time.Sleep(10 * time.Second)
 
+		slog.Debug("checking confirmation", "url", queryURL)
 		req, err := http.NewRequestWithContext(ctx, "GET", queryURL, nil)
 		if err != nil {
 			return publish{}, err
@@ -398,17 +399,18 @@ func (p *Platform) waitForConfirm(ctx context.Context, queryURL string) (publish
 		}
 		defer resp.Body.Close()
 
+		b, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return publish{}, err
+		}
+
 		if resp.StatusCode == 204 {
+			slog.Debug("got a 204", "url", queryURL, "data", string(b))
 			continue
 		}
 
 		if resp.StatusCode != http.StatusOK {
 			return publish{}, ErrStatusCode
-		}
-
-		b, err := io.ReadAll(resp.Body)
-		if err != nil {
-			return publish{}, err
 		}
 
 		err = json.Unmarshal(b, &r)
