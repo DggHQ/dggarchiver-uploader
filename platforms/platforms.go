@@ -75,7 +75,8 @@ func (p *Platforms) Start() {
 					vod.Visibility = 1
 					break filterLoop
 				default:
-					return
+					vod.Visibility = -1
+					break filterLoop
 				}
 			}
 		}
@@ -94,18 +95,20 @@ func (p *Platforms) Start() {
 
 		ctx := context.Background()
 
-		for _, v := range p.enabledPlatforms {
-			imp, err := implementation.Map[v](p.cfg, p.monitor)
-			if err != nil {
-				slog.Error("unable to create a platform", slog.Any("err", err))
-				continue
-			}
-			if err := imp.Upload(ctx, vod); err != nil {
-				slog.Error("upload error", slog.Any("err", err))
-				continue
-			}
+		if vod.Visibility != -1 {
+			for _, v := range p.enabledPlatforms {
+				imp, err := implementation.Map[v](p.cfg, p.monitor)
+				if err != nil {
+					slog.Error("unable to create a platform", slog.Any("err", err))
+					continue
+				}
+				if err := imp.Upload(ctx, vod); err != nil {
+					slog.Error("upload error", slog.Any("err", err))
+					continue
+				}
 
-			time.Sleep(time.Second * 1)
+				time.Sleep(time.Second * 1)
+			}
 		}
 
 		if err = p.cfg.NATS.NatsConnection.Publish(fmt.Sprintf("%s.cleanup", p.cfg.NATS.Topic), msg.Data); err != nil {
