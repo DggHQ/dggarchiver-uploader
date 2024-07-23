@@ -106,10 +106,11 @@ func (p *Platforms) Start() {
 
 		if vod.Visibility != -1 {
 			for _, v := range p.enabledPlatforms {
-				if rvod.HostingPlatforms != nil && !slices.Contains(rvod.HostingPlatforms, v) {
+				if rvod.HostingPlatforms != nil && len(rvod.HostingPlatforms) != 0 && !slices.Contains(rvod.HostingPlatforms, v) {
 					slog.Debug("skipping platform", slog.String("platform", v))
 					continue
 				}
+				
 				imp, err := implementation.Map[v](p.cfg, p.monitor)
 				if err != nil {
 					slog.Error("unable to create a platform", slog.Any("err", err))
