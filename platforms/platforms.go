@@ -22,6 +22,7 @@ import (
 type ReceivedVOD struct {
 	*dggarchivermodel.VOD
 	HostingPlatforms []string `json:"hosting_platforms"`
+	Cleanup          bool     `json:"cleanup"`
 }
 
 type Platforms struct {
@@ -54,6 +55,7 @@ func (p *Platforms) Start() {
 	if _, err := p.cfg.NATS.NatsConnection.Subscribe(fmt.Sprintf("%s.upload", p.cfg.NATS.Topic), func(msg *nats.Msg) {
 		rvod := ReceivedVOD{
 			HostingPlatforms: []string{},
+			Cleanup:          true,
 		}
 		err := json.Unmarshal(msg.Data, &rvod)
 		if err != nil {
@@ -110,7 +112,7 @@ func (p *Platforms) Start() {
 					slog.Debug("skipping platform", slog.String("platform", v))
 					continue
 				}
-				
+
 				imp, err := implementation.Map[v](p.cfg, p.monitor)
 				if err != nil {
 					slog.Error("unable to create a platform", slog.Any("err", err))
@@ -123,6 +125,10 @@ func (p *Platforms) Start() {
 
 				time.Sleep(time.Second * 1)
 			}
+		}
+
+		if !rvod.Cleanup {
+			return
 		}
 
 		if err = p.cfg.NATS.NatsConnection.Publish(fmt.Sprintf("%s.cleanup", p.cfg.NATS.Topic), msg.Data); err != nil {
