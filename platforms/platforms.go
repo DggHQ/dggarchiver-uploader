@@ -149,14 +149,14 @@ func (p *Platforms) Start() {
 
 					for _, v := range platformsParallel {
 						wg.Add(1)
-						go func(p implementation.Platform) {
+						go func() {
 							defer wg.Done()
 
 							ctx := context.Background()
-							if err := p.Upload(ctx, vod); err != nil {
+							if err := v.Upload(ctx, vod); err != nil {
 								slog.Error("upload error", slog.Any("err", err))
 							}
-						}(v)
+						}()
 					}
 
 					wg.Wait()
