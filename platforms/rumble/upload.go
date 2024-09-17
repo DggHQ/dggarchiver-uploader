@@ -390,10 +390,15 @@ func (p *Platform) putUpload(ctx context.Context, vod *dggarchivermodel.VOD, f *
 		percent := math.Round(((float64(i+1)/float64(len(chunkNames)))*100)*percentRatio) / percentRatio
 
 		slog.Info("progress",
+			slog.String("platform", platformName),
 			slog.Int("chunk", i+1),
 			slog.Int("chunks", len(chunkNames)),
 			slog.Float64("percent", percent),
 			slog.String("file", fileName),
+			slog.Group("vod",
+				slog.String("platform", vod.Platform),
+				slog.String("id", vod.VID),
+			),
 		)
 
 		if p.cfg.Notifications.Condition("progress") {

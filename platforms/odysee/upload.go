@@ -186,10 +186,12 @@ func (p *Platform) Upload(ctx context.Context, vod *dggarchivermodel.VOD) error 
 			progress := u.Progress()
 
 			slog.Info("progress",
+				slog.String("platform", platformName),
 				slog.Int64("offset", u.Offset()),
 				slog.Int64("size", u.Size()),
 				slog.Int64("percent", progress),
 				slog.String("file", fi.Name()),
+				slogVodGroup,
 			)
 
 			if p.cfg.Notifications.Condition("progress") {
