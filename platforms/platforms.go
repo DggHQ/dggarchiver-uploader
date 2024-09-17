@@ -8,7 +8,7 @@ import (
 	"os"
 	"regexp"
 	"slices"
-	"time"
+	"sync"
 
 	config "github.com/DggHQ/dggarchiver-config/uploader"
 	dggarchivermodel "github.com/DggHQ/dggarchiver-model"
@@ -122,37 +122,54 @@ func (p *Platforms) Start() {
 				platforms = append(platforms, imp)
 			}
 
-			slices.SortFunc(platforms, func(a, b implementation.Platform) int {
-				aParallelable := a.IsParallelable()
-				bParallelable := b.IsParallelable()
+			if p.cfg.ParallelUploads {
+				platformsNormal := []implementation.Platform{}
+				platformsParallel := []implementation.Platform{}
 
-				switch {
-				case aParallelable && !bParallelable:
-					return 1
-				case !aParallelable && bParallelable:
-					return -1
-				default:
-					return 0
+				for _, v := range platforms {
+					if v.IsParallelable() {
+						platformsParallel = append(platformsParallel, v)
+						continue
+					}
+
+					platformsNormal = append(platformsNormal, v)
 				}
-			})
 
-			for i, v := range platforms {
-				ctx := context.Background()
+				for _, v := range platformsNormal {
+					ctx := context.Background()
 
-				if i != len(platforms)-1 && v.IsParallelable() && p.cfg.ParallelUploads {
-					go func() {
-						if err := v.Upload(ctx, vod); err != nil {
-							slog.Error("upload error", slog.Any("err", err))
-						}
-					}()
-				} else {
 					if err := v.Upload(ctx, vod); err != nil {
 						slog.Error("upload error", slog.Any("err", err))
 						continue
 					}
 				}
 
-				time.Sleep(time.Second * 1)
+				if len(platformsParallel) > 0 {
+					var wg sync.WaitGroup
+
+					for _, v := range platformsParallel {
+						wg.Add(1)
+						go func() {
+							defer wg.Done()
+
+							ctx := context.Background()
+							if err := v.Upload(ctx, vod); err != nil {
+								slog.Error("upload error", slog.Any("err", err))
+							}
+						}()
+					}
+
+					wg.Wait()
+				}
+			} else {
+				for _, v := range platforms {
+					ctx := context.Background()
+
+					if err := v.Upload(ctx, vod); err != nil {
+						slog.Error("upload error", slog.Any("err", err))
+						continue
+					}
+				}
 			}
 		}
 
