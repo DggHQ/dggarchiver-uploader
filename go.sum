@@ -3,10 +3,10 @@ cloud.google.com/go v0.34.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMT
 cloud.google.com/go v0.38.0/go.mod h1:990N+gfupTy94rShfmMCWGDn0LpTmnzTp2qbd1dvSRU=
 cloud.google.com/go v0.40.0/go.mod h1:Tk58MuI9rbLMKlAjeO/bDnteAx7tX2gJIXw4T5Jwlro=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
-github.com/DggHQ/dggarchiver-config v0.0.0-20240718103235-c0616ec0e80c h1:in9vmwC2jf8RlnmbaK83NTBmaDT4e4YBgc8ydBr1z/k=
-github.com/DggHQ/dggarchiver-config v0.0.0-20240718103235-c0616ec0e80c/go.mod h1:HhlduECYoRlao6WC1iADuH6JUaHGrODixEwezjpGliY=
-github.com/DggHQ/dggarchiver-model v0.0.0-20240718103025-03ef5d760d1e h1:2xDeuaeL2JP4Sv2LSPohK9JQmCRpSTuvbKpIsu3KrOM=
-github.com/DggHQ/dggarchiver-model v0.0.0-20240718103025-03ef5d760d1e/go.mod h1:p1i5pIUtDhsoYfL7ViIdojIK6tAsJKxhbH55OOmBlmo=
+github.com/DggHQ/dggarchiver-config v0.0.0-20240917175111-86550081a5c6 h1:5u3lG/I4I0hK6eLKW14ld1K/AhYHzMFtAAZm7HDx7bQ=
+github.com/DggHQ/dggarchiver-config v0.0.0-20240917175111-86550081a5c6/go.mod h1:uULw9o7/2CCyrVOhiggJPF3mOOTx2c0ku1rMf2IPinc=
+github.com/DggHQ/dggarchiver-model v0.0.0-20240722035243-bcb11567a7a8 h1:7/Exgx2+W7zeTC504lKlNKH2j2wr0sH7bKG1yihzTGQ=
+github.com/DggHQ/dggarchiver-model v0.0.0-20240722035243-bcb11567a7a8/go.mod h1:p1i5pIUtDhsoYfL7ViIdojIK6tAsJKxhbH55OOmBlmo=
 github.com/PuerkitoBio/goquery v1.9.1 h1:mTL6XjbJTZdpfL+Gwl5U2h1l9yEkJjhmlTeV9VPW7UI=
 github.com/PuerkitoBio/goquery v1.9.1/go.mod h1:cW1n6TmIMDoORQU5IU/P1T3tGFunOeXEpGP2WHRwkbY=
 github.com/alecthomas/template v0.0.0-20160405071501-a0175ee3bccc/go.mod h1:LOuyumcjzFXgccqObfd/Ljyb9UuFJ6TxHnclSeseNhc=

@@ -26,6 +26,8 @@ import (
 
 const (
 	maxFileSize int64 = 16000000000 // 16 gigs is max file size on odysee
+
+	isParallelable bool = true
 )
 
 var (
@@ -115,6 +117,10 @@ type odyseeUploadTokenResponse struct {
 		Token    string `json:"token"`
 		Location string `json:"location"`
 	} `json:"payload"`
+}
+
+func (p *Platform) IsParallelable() bool {
+	return isParallelable
 }
 
 func (p *Platform) Upload(ctx context.Context, vod *dggarchivermodel.VOD) error {

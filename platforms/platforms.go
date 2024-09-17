@@ -104,11 +104,11 @@ func (p *Platforms) Start() {
 			}
 		}
 
-		ctx := context.Background()
-
 		if vod.Visibility != -1 {
+			platforms := []implementation.Platform{}
+
 			for _, v := range p.enabledPlatforms {
-				if rvod.HostingPlatforms != nil && len(rvod.HostingPlatforms) != 0 && !slices.Contains(rvod.HostingPlatforms, v) {
+				if len(rvod.HostingPlatforms) != 0 && !slices.Contains(rvod.HostingPlatforms, v) {
 					slog.Debug("skipping platform", slog.String("platform", v))
 					continue
 				}
@@ -118,9 +118,38 @@ func (p *Platforms) Start() {
 					slog.Error("unable to create a platform", slog.Any("err", err))
 					continue
 				}
-				if err := imp.Upload(ctx, vod); err != nil {
-					slog.Error("upload error", slog.Any("err", err))
-					continue
+
+				platforms = append(platforms, imp)
+			}
+
+			slices.SortFunc(platforms, func(a, b implementation.Platform) int {
+				aParallelable := a.IsParallelable()
+				bParallelable := b.IsParallelable()
+
+				switch {
+				case aParallelable && !bParallelable:
+					return 1
+				case !aParallelable && bParallelable:
+					return -1
+				default:
+					return 0
+				}
+			})
+
+			for i, v := range platforms {
+				ctx := context.Background()
+
+				if i != len(platforms)-1 && v.IsParallelable() && p.cfg.ParallelUploads {
+					go func() {
+						if err := v.Upload(ctx, vod); err != nil {
+							slog.Error("upload error", slog.Any("err", err))
+						}
+					}()
+				} else {
+					if err := v.Upload(ctx, vod); err != nil {
+						slog.Error("upload error", slog.Any("err", err))
+						continue
+					}
 				}
 
 				time.Sleep(time.Second * 1)

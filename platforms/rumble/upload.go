@@ -28,6 +28,8 @@ import (
 	"github.com/containrrr/shoutrrr/pkg/types"
 )
 
+const isParallelable bool = true
+
 var (
 	ErrNoURLsReceived        = errors.New("no urls received from rumble")
 	ErrFileTooLarge          = errors.New("file too large")
@@ -59,6 +61,10 @@ type fileMetadata struct {
 	Speed     int64  `json:"speed"`
 	NumChunks int64  `json:"num_chunks"`
 	TimeEnd   int64  `json:"time_end"`
+}
+
+func (p *Platform) IsParallelable() bool {
+	return isParallelable
 }
 
 func (p *Platform) Upload(ctx context.Context, vod *dggarchivermodel.VOD) error {
