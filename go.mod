@@ -1,12 +1,12 @@
 module github.com/DggHQ/dggarchiver-uploader
 
-go 1.21
+go 1.23
 
 toolchain go1.22.1
 
 require (
-	github.com/DggHQ/dggarchiver-config v0.0.0-20240702064918-3c25419d80f8
-	github.com/DggHQ/dggarchiver-model v0.0.0-20240701043726-064087a74466
+	github.com/DggHQ/dggarchiver-config v0.0.0-20240917175111-86550081a5c6
+	github.com/DggHQ/dggarchiver-model v0.0.0-20240722035243-bcb11567a7a8
 	github.com/PuerkitoBio/goquery v1.9.1
 	github.com/containrrr/shoutrrr v0.8.0
 	github.com/eventials/go-tus v0.0.0-20220610120217-05d0564bb571

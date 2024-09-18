@@ -26,12 +26,15 @@ import (
 
 const (
 	maxFileSize int64 = 16000000000 // 16 gigs is max file size on odysee
+
+	isParallelable bool = true
 )
 
 var (
 	ErrFileTooLarge              = errors.New("file too large")
 	ErrUnableToCreateUploadToken = errors.New("unable to create upload token")
 	ErrUnableToCreateStream      = errors.New("unable to create stream")
+	ErrUnableToConfirmStream     = errors.New("unable to confirm stream")
 )
 
 type publishResponse struct {
@@ -66,10 +69,17 @@ type odyseeOutputResponse struct {
 	} `json:"result"`
 }
 
+type RPCError struct {
+	Code    int             `json:"code"`
+	Data    json.RawMessage `json:"data"`
+	Message string          `json:"string"`
+}
+
 type RPC struct {
-	JSONRPC string `json:"jsonrpc"`
-	Method  string `json:"method"`
-	ID      int64  `json:"id"`
+	JSONRPC string    `json:"jsonrpc"`
+	Method  string    `json:"method"`
+	ID      int64     `json:"id"`
+	Error   *RPCError `json:"error,omitempty"`
 }
 
 type odyseeStreamCreateParams struct {
@@ -107,6 +117,10 @@ type odyseeUploadTokenResponse struct {
 		Token    string `json:"token"`
 		Location string `json:"location"`
 	} `json:"payload"`
+}
+
+func (p *Platform) IsParallelable() bool {
+	return isParallelable
 }
 
 func (p *Platform) Upload(ctx context.Context, vod *dggarchivermodel.VOD) error {
@@ -153,9 +167,29 @@ func (p *Platform) Upload(ctx context.Context, vod *dggarchivermodel.VOD) error 
 		}
 	}
 
-	tusClient, err := p.getUpload(ctx)
-	if err != nil {
-		return err
+	var sleep, retries int
+	var tusClient *tus.Client
+	for tusClient == nil {
+		tusClient, err = p.getUpload(ctx)
+		if err != nil {
+			if errors.Is(ErrStatusCode, err) {
+				switch sleep {
+				case 0:
+					sleep = 1
+				case 1, 2, 4, 8, 16, 32:
+					sleep *= 2
+				default:
+					retries++
+				}
+				if retries > 9 {
+					return err
+				}
+				slog.Warn("odysee status code issue, retrying", slog.Any("err", err), slog.Int("sleep", sleep), slog.Int("retries", retries))
+				time.Sleep(time.Duration(sleep) * time.Second)
+				continue
+			}
+			return err
+		}
 	}
 	slog.Debug("created the upload client", slog.String("platform", platformName), slog.String("url", tusClient.Url), slog.Any("headers", tusClient.Header), slogVodGroup)
 
@@ -165,9 +199,30 @@ func (p *Platform) Upload(ctx context.Context, vod *dggarchivermodel.VOD) error 
 	}
 	slog.Debug("created upload", slog.String("platform", platformName), slogVodGroup)
 
-	tusUploader, err := tusClient.CreateUpload(tusUpload)
-	if err != nil {
-		return err
+	sleep = 0
+	retries = 0
+	var tusUploader *tus.Uploader
+	for tusUploader == nil {
+		tusUploader, err = tusClient.CreateUpload(tusUpload)
+		if err != nil {
+			if e, ok := err.(tus.ClientError); ok && e.Code == 404 {
+				switch sleep {
+				case 0:
+					sleep = 1
+				case 1, 2, 4, 8, 16, 32:
+					sleep *= 2
+				default:
+					retries++
+				}
+				if retries > 9 {
+					return err
+				}
+				slog.Warn("odysee 404, retrying", slog.Any("err", err), slog.Int("sleep", sleep), slog.Int("retries", retries))
+				time.Sleep(time.Duration(sleep) * time.Second)
+				continue
+			}
+			return err
+		}
 	}
 	slog.Debug("created uploader", slog.String("platform", platformName), slogVodGroup)
 
@@ -178,10 +233,12 @@ func (p *Platform) Upload(ctx context.Context, vod *dggarchivermodel.VOD) error 
 			progress := u.Progress()
 
 			slog.Info("progress",
+				slog.String("platform", platformName),
 				slog.Int64("offset", u.Offset()),
 				slog.Int64("size", u.Size()),
 				slog.Int64("percent", progress),
 				slog.String("file", fi.Name()),
+				slogVodGroup,
 			)
 
 			if p.cfg.Notifications.Condition("progress") {
@@ -200,7 +257,7 @@ func (p *Platform) Upload(ctx context.Context, vod *dggarchivermodel.VOD) error 
 	slog.Info("starting to upload", slog.String("platform", platformName), slogVodGroup)
 	err = tusUploader.Upload()
 	if err != nil {
-		return nil
+		return err
 	}
 
 	slog.Debug("uploading thumbnail", slog.String("platform", platformName), slogVodGroup)
@@ -326,14 +383,8 @@ func (p *Platform) createQuery(ctx context.Context, vod *dggarchivermodel.VOD, p
 			Preview:      false,
 			ChannelID:    p.cfg.Platforms.Odysee.ChannelID,
 			License:      "None",
-			Tags: []string{
-				"destiny",
-				"vod",
-				"yee wins",
-				"reupload",
-				"mirror",
-			},
-			FilePath: path,
+			Tags:         vod.Tags,
+			FilePath:     path,
 		},
 	}
 
@@ -404,7 +455,13 @@ func (p *Platform) waitForConfirm(ctx context.Context, queryURL string) (publish
 		}
 		defer resp.Body.Close()
 
+		b, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return publish{}, err
+		}
+
 		if resp.StatusCode == 204 {
+			slog.Debug("got a 204", "url", queryURL, "data", string(b))
 			continue
 		}
 
@@ -412,14 +469,14 @@ func (p *Platform) waitForConfirm(ctx context.Context, queryURL string) (publish
 			return publish{}, ErrStatusCode
 		}
 
-		b, err := io.ReadAll(resp.Body)
+		err = json.Unmarshal(b, &r)
 		if err != nil {
 			return publish{}, err
 		}
 
-		err = json.Unmarshal(b, &r)
-		if err != nil {
-			return publish{}, err
+		if r.RPC.Error != nil && r.RPC.Error.Message != "" {
+			slog.Error("got an rpc error", "err", r.RPC.Error.Message, "url", queryURL, "data", r)
+			return publish{}, errors.Join(ErrUnableToConfirmStream, errors.New(r.RPC.Error.Message))
 		}
 	}
 
