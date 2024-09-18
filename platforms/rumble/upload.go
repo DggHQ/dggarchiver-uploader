@@ -34,6 +34,7 @@ var (
 	ErrNoURLsReceived        = errors.New("no urls received from rumble")
 	ErrFileTooLarge          = errors.New("file too large")
 	ErrNoUploadServer        = errors.New("no upload server found")
+	ErrUnableToMerge         = errors.New("unable to merge")
 	APIVersion               = "1.3"
 	defaultSingleChunk int64 = 10000000
 	maxFileSize        int64 = 15000000000 // 15 gigs is max file size on rumble (3000 chunks of maxSingleChunk size)
@@ -427,24 +428,46 @@ func (p *Platform) putUpload(ctx context.Context, vod *dggarchivermodel.VOD, f *
 	qVals.Add("chunkQty", fmt.Sprintf("%d", chunkQty))
 	uMerge.RawQuery = qVals.Encode()
 
-	req, err := http.NewRequestWithContext(ctx, "POST", uMerge.String(), nil)
-	if err != nil {
-		return "", 0, err
-	}
+	var sleep, retries int
+	var ret []byte
+	for {
+		req, err := http.NewRequestWithContext(ctx, "POST", uMerge.String(), nil)
+		if err != nil {
+			return "", 0, err
+		}
 
-	resp, err := p.client.Do(req)
-	if err != nil {
-		return "", 0, err
-	}
-	defer resp.Body.Close()
+		resp, err := p.client.Do(req)
+		if err != nil {
+			return "", 0, err
+		}
+		defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
-		return "", 0, ErrStatusCode
-	}
+		if resp.StatusCode != http.StatusOK {
+			return "", 0, ErrStatusCode
+		}
 
-	ret, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return "", 0, err
+		ret, err = io.ReadAll(resp.Body)
+		if err != nil {
+			return "", 0, err
+		}
+
+		if len(ret) < 100 {
+			break
+		}
+
+		switch sleep {
+		case 0:
+			sleep = 1
+		case 1, 2, 4, 8, 16, 32:
+			sleep *= 2
+		default:
+			retries++
+		}
+		if retries > 9 {
+			return "", 0, ErrUnableToMerge
+		}
+		slog.Warn("rumble server name issue, retrying", slog.Any("err", err), slog.Int("sleep", sleep), slog.Int("retries", retries))
+		time.Sleep(time.Duration(sleep) * time.Second)
 	}
 
 	return string(ret), chunkQty, nil

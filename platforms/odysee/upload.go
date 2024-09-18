@@ -167,9 +167,29 @@ func (p *Platform) Upload(ctx context.Context, vod *dggarchivermodel.VOD) error 
 		}
 	}
 
-	tusClient, err := p.getUpload(ctx)
-	if err != nil {
-		return err
+	var sleep, retries int
+	var tusClient *tus.Client
+	for tusClient == nil {
+		tusClient, err = p.getUpload(ctx)
+		if err != nil {
+			if errors.Is(ErrStatusCode, err) {
+				switch sleep {
+				case 0:
+					sleep = 1
+				case 1, 2, 4, 8, 16, 32:
+					sleep *= 2
+				default:
+					retries++
+				}
+				if retries > 9 {
+					return err
+				}
+				slog.Warn("odysee status code issue, retrying", slog.Any("err", err), slog.Int("sleep", sleep), slog.Int("retries", retries))
+				time.Sleep(time.Duration(sleep) * time.Second)
+				continue
+			}
+			return err
+		}
 	}
 	slog.Debug("created the upload client", slog.String("platform", platformName), slog.String("url", tusClient.Url), slog.Any("headers", tusClient.Header), slogVodGroup)
 
@@ -179,9 +199,30 @@ func (p *Platform) Upload(ctx context.Context, vod *dggarchivermodel.VOD) error 
 	}
 	slog.Debug("created upload", slog.String("platform", platformName), slogVodGroup)
 
-	tusUploader, err := tusClient.CreateUpload(tusUpload)
-	if err != nil {
-		return err
+	sleep = 0
+	retries = 0
+	var tusUploader *tus.Uploader
+	for tusUploader == nil {
+		tusUploader, err = tusClient.CreateUpload(tusUpload)
+		if err != nil {
+			if e, ok := err.(tus.ClientError); ok && e.Code == 404 {
+				switch sleep {
+				case 0:
+					sleep = 1
+				case 1, 2, 4, 8, 16, 32:
+					sleep *= 2
+				default:
+					retries++
+				}
+				if retries > 9 {
+					return err
+				}
+				slog.Warn("odysee 404, retrying", slog.Any("err", err), slog.Int("sleep", sleep), slog.Int("retries", retries))
+				time.Sleep(time.Duration(sleep) * time.Second)
+				continue
+			}
+			return err
+		}
 	}
 	slog.Debug("created uploader", slog.String("platform", platformName), slogVodGroup)
 
