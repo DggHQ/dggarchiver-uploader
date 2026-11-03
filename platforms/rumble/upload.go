@@ -28,10 +28,13 @@ import (
 	"github.com/containrrr/shoutrrr/pkg/types"
 )
 
+const isParallelable bool = true
+
 var (
 	ErrNoURLsReceived        = errors.New("no urls received from rumble")
 	ErrFileTooLarge          = errors.New("file too large")
 	ErrNoUploadServer        = errors.New("no upload server found")
+	ErrUnableToMerge         = errors.New("unable to merge")
 	APIVersion               = "1.3"
 	defaultSingleChunk int64 = 10000000
 	maxFileSize        int64 = 15000000000 // 15 gigs is max file size on rumble (3000 chunks of maxSingleChunk size)
@@ -59,6 +62,10 @@ type fileMetadata struct {
 	Speed     int64  `json:"speed"`
 	NumChunks int64  `json:"num_chunks"`
 	TimeEnd   int64  `json:"time_end"`
+}
+
+func (p *Platform) IsParallelable() bool {
+	return isParallelable
 }
 
 func (p *Platform) Upload(ctx context.Context, vod *dggarchivermodel.VOD) error {
@@ -229,7 +236,7 @@ func (p *Platform) smallUpload(ctx context.Context, vod *dggarchivermodel.VOD, f
 		Title:          fmt.Sprintf("[%s:%s] %s", vod.Platform, vod.VID, vod.Title),
 		Description:    fmt.Sprintf("%s\n%s", vod.StartTime, vod.EndTime),
 		ServerFileName: fileName,
-		Tags:           "destiny,vod,yee wins,reupload,mirror",
+		Tags:           strings.Join(vod.Tags, ","),
 		Category:       "15",
 		Visibility:     "private",
 		Thumbnail:      selectedThumb,
@@ -313,7 +320,7 @@ func (p *Platform) bigUpload(ctx context.Context, vod *dggarchivermodel.VOD, f *
 		Title:          processedTitle,
 		Description:    fmt.Sprintf("%s\n%s", vod.StartTime, vod.EndTime),
 		ServerFileName: serverFileName,
-		Tags:           "destiny,vod,yee wins,reupload,mirror",
+		Tags:           strings.Join(vod.Tags, ","),
 		Category:       "15",
 		Visibility:     "public",
 		Thumbnail:      selectedThumb,
@@ -390,10 +397,15 @@ func (p *Platform) putUpload(ctx context.Context, vod *dggarchivermodel.VOD, f *
 		percent := math.Round(((float64(i+1)/float64(len(chunkNames)))*100)*percentRatio) / percentRatio
 
 		slog.Info("progress",
+			slog.String("platform", platformName),
 			slog.Int("chunk", i+1),
 			slog.Int("chunks", len(chunkNames)),
 			slog.Float64("percent", percent),
 			slog.String("file", fileName),
+			slog.Group("vod",
+				slog.String("platform", vod.Platform),
+				slog.String("id", vod.VID),
+			),
 		)
 
 		if p.cfg.Notifications.Condition("progress") {
@@ -416,24 +428,46 @@ func (p *Platform) putUpload(ctx context.Context, vod *dggarchivermodel.VOD, f *
 	qVals.Add("chunkQty", fmt.Sprintf("%d", chunkQty))
 	uMerge.RawQuery = qVals.Encode()
 
-	req, err := http.NewRequestWithContext(ctx, "POST", uMerge.String(), nil)
-	if err != nil {
-		return "", 0, err
-	}
+	var sleep, retries int
+	var ret []byte
+	for {
+		req, err := http.NewRequestWithContext(ctx, "POST", uMerge.String(), nil)
+		if err != nil {
+			return "", 0, err
+		}
 
-	resp, err := p.client.Do(req)
-	if err != nil {
-		return "", 0, err
-	}
-	defer resp.Body.Close()
+		resp, err := p.client.Do(req)
+		if err != nil {
+			return "", 0, err
+		}
+		defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
-		return "", 0, ErrStatusCode
-	}
+		if resp.StatusCode != http.StatusOK {
+			return "", 0, ErrStatusCode
+		}
 
-	ret, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return "", 0, err
+		ret, err = io.ReadAll(resp.Body)
+		if err != nil {
+			return "", 0, err
+		}
+
+		if len(ret) < 100 {
+			break
+		}
+
+		switch sleep {
+		case 0:
+			sleep = 1
+		case 1, 2, 4, 8, 16, 32:
+			sleep *= 2
+		default:
+			retries++
+		}
+		if retries > 9 {
+			return "", 0, ErrUnableToMerge
+		}
+		slog.Warn("rumble server name issue, retrying", slog.Any("err", err), slog.Int("sleep", sleep), slog.Int("retries", retries))
+		time.Sleep(time.Duration(sleep) * time.Second)
 	}
 
 	return string(ret), chunkQty, nil

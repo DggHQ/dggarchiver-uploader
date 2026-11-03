@@ -14,4 +14,5 @@ var Map = map[string]newPlatformFunc{}
 
 type Platform interface {
 	Upload(context.Context, *dggarchivermodel.VOD) error
+	IsParallelable() bool
 }

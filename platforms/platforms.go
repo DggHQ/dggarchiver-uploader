@@ -7,7 +7,8 @@ import (
 	"log/slog"
 	"os"
 	"regexp"
-	"time"
+	"slices"
+	"sync"
 
 	config "github.com/DggHQ/dggarchiver-config/uploader"
 	dggarchivermodel "github.com/DggHQ/dggarchiver-model"
@@ -17,6 +18,12 @@ import (
 	"github.com/containrrr/shoutrrr/pkg/types"
 	"github.com/nats-io/nats.go"
 )
+
+type ReceivedVOD struct {
+	*dggarchivermodel.VOD
+	HostingPlatforms []string `json:"hosting_platforms"`
+	Cleanup          bool     `json:"cleanup"`
+}
 
 type Platforms struct {
 	enabledPlatforms []string
@@ -46,12 +53,16 @@ func New(cfg *config.Config, monitor *monitoring.Monitor, enabledPlatforms []str
 
 func (p *Platforms) Start() {
 	if _, err := p.cfg.NATS.NatsConnection.Subscribe(fmt.Sprintf("%s.upload", p.cfg.NATS.Topic), func(msg *nats.Msg) {
-		vod := &dggarchivermodel.VOD{}
-		err := json.Unmarshal(msg.Data, vod)
+		rvod := ReceivedVOD{
+			HostingPlatforms: []string{},
+			Cleanup:          true,
+		}
+		err := json.Unmarshal(msg.Data, &rvod)
 		if err != nil {
 			slog.Error("unable to unmarshal VOD", slog.Any("err", err))
 			return
 		}
+		vod := rvod.VOD
 
 	filterLoop:
 		for f, b := range p.filters {
@@ -75,7 +86,8 @@ func (p *Platforms) Start() {
 					vod.Visibility = 1
 					break filterLoop
 				default:
-					return
+					vod.Visibility = -1
+					break filterLoop
 				}
 			}
 		}
@@ -92,20 +104,85 @@ func (p *Platforms) Start() {
 			}
 		}
 
-		ctx := context.Background()
+		if vod.Visibility != -1 {
+			platforms := []implementation.Platform{}
 
-		for _, v := range p.enabledPlatforms {
-			imp, err := implementation.Map[v](p.cfg, p.monitor)
-			if err != nil {
-				slog.Error("unable to create a platform", slog.Any("err", err))
-				continue
-			}
-			if err := imp.Upload(ctx, vod); err != nil {
-				slog.Error("upload error", slog.Any("err", err))
-				continue
+			for _, v := range p.enabledPlatforms {
+				if len(rvod.HostingPlatforms) != 0 && !slices.Contains(rvod.HostingPlatforms, v) {
+					slog.Debug("skipping platform", slog.String("platform", v))
+					continue
+				}
+
+				imp, err := implementation.Map[v](p.cfg, p.monitor)
+				if err != nil {
+					slog.Error("unable to create a platform", slog.Any("err", err))
+					continue
+				}
+
+				platforms = append(platforms, imp)
 			}
 
-			time.Sleep(time.Second * 1)
+			if p.cfg.ParallelUploads {
+				platformsNormal := []implementation.Platform{}
+				platformsParallel := []implementation.Platform{}
+
+				for _, v := range platforms {
+					if v.IsParallelable() {
+						platformsParallel = append(platformsParallel, v)
+						continue
+					}
+
+					platformsNormal = append(platformsNormal, v)
+				}
+
+				for _, v := range platformsNormal {
+					ctx := context.Background()
+
+					if err := v.Upload(ctx, vod); err != nil {
+						slog.Error("upload error", slog.Any("err", err))
+						continue
+					}
+				}
+
+				if len(platformsParallel) > 0 {
+					var wg sync.WaitGroup
+
+					for _, v := range platformsParallel {
+						wg.Add(1)
+						go func() {
+							defer wg.Done()
+
+							ctx := context.Background()
+							if err := v.Upload(ctx, vod); err != nil {
+								slog.Error("upload error", slog.Any("err", err))
+							}
+						}()
+					}
+
+					wg.Wait()
+				}
+			} else {
+				for _, v := range platforms {
+					ctx := context.Background()
+
+					if err := v.Upload(ctx, vod); err != nil {
+						slog.Error("upload error", slog.Any("err", err))
+						continue
+					}
+				}
+			}
+		}
+
+		if !rvod.Cleanup {
+			return
+		}
+
+		if err = p.cfg.NATS.NatsConnection.Publish(fmt.Sprintf("%s.cleanup", p.cfg.NATS.Topic), msg.Data); err != nil {
+			slog.Error("unable to publish message",
+				slog.String("id", vod.VID),
+				slog.Any("err", err),
+			)
+			return
 		}
 	}); err != nil {
 		slog.Error("unable to subscribe to NATS topic", slog.Any("err", err))
